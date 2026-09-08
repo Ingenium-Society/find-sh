@@ -3,6 +3,7 @@ title: "Calling APIs in JavaScript"
 category: "Languages"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 5
 ---
 
 # Calling APIs in JavaScript

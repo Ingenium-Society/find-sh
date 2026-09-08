@@ -3,6 +3,7 @@ title: "Async / Await & Fetch"
 category: "Languages"
 difficulty: "intermediate"
 updatedAt: "2026-09-07"
+order: 4
 ---
 
 # Asynchronous JavaScript: Async/Await & Fetch

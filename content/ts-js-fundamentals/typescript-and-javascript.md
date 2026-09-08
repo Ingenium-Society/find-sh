@@ -3,6 +3,7 @@ title: "TypeScript & JavaScript"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 1
 ---
 
 # TypeScript & JavaScript

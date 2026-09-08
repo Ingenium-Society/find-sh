@@ -3,6 +3,7 @@ title: "Debugging & Keyboard Shortcuts"
 category: "Tools"
 difficulty: "intermediate"
 updatedAt: "2026-09-07"
+order: 3
 ---
 
 # Debugging & Keyboard Shortcuts

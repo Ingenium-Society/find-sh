@@ -3,6 +3,7 @@ title: "VS Code Extensions & Settings"
 category: "Tools"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 2
 ---
 
 # VS Code Extensions & Settings

@@ -3,6 +3,7 @@ title: "Environment Variables and PATH"
 category: "Tools"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 3
 ---
 
 # Environment Variables and PATH

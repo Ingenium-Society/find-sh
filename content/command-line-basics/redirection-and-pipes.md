@@ -3,6 +3,7 @@ title: "Redirection and Pipes"
 category: "Tools"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 2
 ---
 
 # Redirection and Pipes

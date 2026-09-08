@@ -3,6 +3,7 @@ title: "Environment Management"
 category: "Languages"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 2
 ---
 
 # Environment Management

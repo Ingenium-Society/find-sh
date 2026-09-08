@@ -3,6 +3,7 @@ title: "Collaborating with Remotes"
 category: "Tools"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 4
 ---
 
 # Collaborating with Remotes

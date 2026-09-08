@@ -60,6 +60,7 @@ title: "What is Git?"
 category: "Tools"
 difficulty: "beginner"   # beginner | intermediate | advanced
 updatedAt: "2026-09-07"
+order: 1                 # optional — controls sidebar position among siblings; ascending, lower = earlier. Omit to sort alphabetically after ordered items.
 ---
 ```
 Do not invent additional required fields without updating this file.

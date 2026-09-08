@@ -3,6 +3,7 @@ title: "DOM Manipulation & Events"
 category: "Frontend"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 6
 ---
 
 # DOM Manipulation & Event Handling

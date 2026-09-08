@@ -3,6 +3,7 @@ title: "Virtual Environments"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 3
 ---
 
 # Virtual Environments

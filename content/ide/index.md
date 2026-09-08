@@ -3,6 +3,7 @@ title: "IDE & Development Tools"
 category: "Tools"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 1
 ---
 
 # IDE & Development Tools

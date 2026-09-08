@@ -3,6 +3,7 @@ title: "Calling APIs in Python"
 category: "Languages"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 4
 ---
 
 # Calling APIs in Python

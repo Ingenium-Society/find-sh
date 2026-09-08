@@ -3,6 +3,7 @@ title: "Project Structure"
 category: "Languages"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 7
 ---
 
 # Project Structure

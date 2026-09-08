@@ -3,6 +3,7 @@ title: "Python Fundamentals"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-08"
+order: 4
 ---
 
 # Python Fundamentals

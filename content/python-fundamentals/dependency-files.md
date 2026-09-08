@@ -3,6 +3,7 @@ title: "Dependency Files"
 category: "Languages"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 8
 ---
 
 # Dependency Files

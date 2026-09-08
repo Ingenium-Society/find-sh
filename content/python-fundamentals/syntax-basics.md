@@ -3,6 +3,7 @@ title: "Syntax Basics"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 1
 ---
 
 # Python Syntax Basics

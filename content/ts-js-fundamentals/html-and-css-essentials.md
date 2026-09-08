@@ -3,6 +3,7 @@ title: "HTML & CSS Essentials for Frontend"
 category: "Frontend"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 5
 ---
 
 # HTML & CSS Essentials for Frontend Development

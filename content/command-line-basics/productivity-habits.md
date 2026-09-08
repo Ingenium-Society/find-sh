@@ -3,6 +3,7 @@ title: "Productivity Habits"
 category: "Tools"
 difficulty: "beginner"
 updatedAt: "2026-09-08"
+order: 4
 ---
 
 # Productivity Habits

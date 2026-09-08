@@ -3,6 +3,7 @@ title: "Syntax & Types"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 2
 ---
 
 # TypeScript & JavaScript Syntax & Types

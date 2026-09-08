@@ -3,6 +3,7 @@ title: "Undoing Changes"
 category: "Tools"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 3
 ---
 
 # Undoing Changes

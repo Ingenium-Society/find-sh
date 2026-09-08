@@ -3,6 +3,7 @@ title: "Working with APIs"
 category: "Concepts"
 difficulty: "beginner"
 updatedAt: "2026-09-08"
+order: 6
 ---
 
 # Working with APIs

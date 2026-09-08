@@ -3,6 +3,7 @@ title: "Git Fundamentals"
 category: "Tools"
 difficulty: "beginner"
 updatedAt: "2026-09-08"
+order: 3
 ---
 
 # Git Fundamentals

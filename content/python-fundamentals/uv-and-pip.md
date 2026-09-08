@@ -3,6 +3,7 @@ title: "Python Package Managers: uv & pip"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 4
 ---
 
 # Python Package Managers: uv & pip

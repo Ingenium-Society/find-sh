@@ -3,6 +3,7 @@ title: "API Keys and Secrets"
 category: "Concepts"
 difficulty: "intermediate"
 updatedAt: "2026-09-08"
+order: 3
 ---
 
 # API Keys and Secrets

@@ -3,6 +3,7 @@ title: "Working with Libraries"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 5
 ---
 
 # Working with Python Libraries

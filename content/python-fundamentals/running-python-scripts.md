@@ -3,6 +3,7 @@ title: "Running Python Scripts"
 category: "Languages"
 difficulty: "beginner"
 updatedAt: "2026-09-08"
+order: 6
 ---
 
 # Running Python Scripts

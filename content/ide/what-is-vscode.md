@@ -3,6 +3,7 @@ title: "What is VS Code?"
 category: "Tools"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 1
 ---
 
 # What is VS Code?

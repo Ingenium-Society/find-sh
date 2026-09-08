@@ -3,6 +3,7 @@ title: "What is an API Key?"
 category: "Security"
 difficulty: "beginner"
 updatedAt: "2026-09-07"
+order: 2
 ---
 
 # What is an API Key?

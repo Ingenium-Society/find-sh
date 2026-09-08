@@ -3,6 +3,7 @@ title: "Branching & Merging"
 category: "Tools"
 difficulty: "beginner"
 updatedAt: "2026-09-08"
+order: 2
 ---
 
 # Branching & Merging

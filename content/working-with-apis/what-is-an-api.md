@@ -3,6 +3,7 @@ title: "What is an API?"
 category: "Concepts"
 difficulty: "beginner"
 updatedAt: "2026-09-08"
+order: 1
 ---
 
 # What is an API?

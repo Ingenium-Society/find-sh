@@ -15,6 +15,7 @@ export interface Frontmatter {
   category: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   updatedAt: string;
+  order?: number;
 }
 
 export interface TreeNode {
@@ -72,9 +73,9 @@ export function getNavigationTree(dir: string = CONTENT_DIR, baseSlug: string = 
       });
     } else if (entry.isFile() && entry.name.endsWith('.md')) {
       const nameWithoutExt = entry.name.replace(/\.md$/, '');
-      // If it's an index.md at the root content level, skip or handle appropriately.
-      // If it's an index.md inside a subfolder, it's already handled by the folder logic.
-      if (entry.name === 'index.md' && dir === CONTENT_DIR) {
+      // index.md is never listed as its own child item — it's already represented
+      // by the folder itself (via hasIndex / the "View" link), at every nesting level.
+      if (entry.name === 'index.md') {
         continue;
       }
 
@@ -92,12 +93,16 @@ export function getNavigationTree(dir: string = CONTENT_DIR, baseSlug: string = 
     }
   }
 
-  // Sort: folders before files, alphabetical within each group
+  // Sort: explicit "order" in frontmatter first (ascending, missing = last),
+  // then folders before files, then alphabetical as a final tiebreaker.
   return nodes.sort((a, b) => {
-    if (a.type === b.type) {
-      return a.name.localeCompare(b.name);
-    }
-    return a.type === 'folder' ? -1 : 1;
+    const orderA = a.frontmatter?.order ?? Infinity;
+    const orderB = b.frontmatter?.order ?? Infinity;
+    if (orderA !== orderB) return orderA - orderB;
+
+    if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+
+    return a.name.localeCompare(b.name);
   });
 }
 
