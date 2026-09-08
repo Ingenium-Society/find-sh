@@ -19,6 +19,29 @@ export default function FileTree({ nodes }: FileTreeProps) {
   );
 }
 
+function FolderIcon({ isOpen }: { isOpen: boolean }) {
+  if (isOpen) {
+    return (
+      <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+      </svg>
+    );
+  }
+  return (
+    <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg className="w-4 h-4 text-zinc-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  );
+}
+
 function FileTreeNode({ node }: { node: TreeNode }) {
   const pathname = usePathname();
   const isActive = pathname === `/tutorials/${node.slug}`;
@@ -35,7 +58,7 @@ function FileTreeNode({ node }: { node: TreeNode }) {
             onClick={() => setIsOpen(!isOpen)}
             className="flex items-center gap-2 flex-1 text-left font-semibold"
           >
-            <span>{isOpen ? '📂' : '📁'}</span>
+            <FolderIcon isOpen={isOpen} />
             <span>{node.name}</span>
           </button>
           {hasClickableIndex && (
@@ -66,13 +89,14 @@ function FileTreeNode({ node }: { node: TreeNode }) {
     <li>
       <Link
         href={`/tutorials/${node.slug}`}
-        className={`block py-1.5 px-2 rounded-md transition-colors ${
+        className={`flex items-center gap-2 py-1.5 px-2 rounded-md transition-colors ${
           isActive
             ? 'bg-blue-600 text-white font-semibold'
             : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800'
         }`}
       >
-        📄 {node.frontmatter?.title || node.name}
+        <FileIcon />
+        <span>{node.frontmatter?.title || node.name}</span>
       </Link>
     </li>
   );
