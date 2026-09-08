@@ -22,8 +22,4 @@ console.log(greeting);
 
 ## Running TypeScript
 
-Node.js executes JavaScript/TypeScript runtime environments. You can run TS files directly with modern runtimes like Node or Bun:
-
-```bash
-node index.ts
-```
+TypeScript needs to be converted to JavaScript before most environments can run it — see the dedicated "Running JS & TS" tutorial in this section for exactly how, including which Node versions can run `.ts` files directly and which still need a compile step.

@@ -1,0 +1,1759 @@
+diff --git a/content/command-line-basics/environment-variables-and-path.md b/content/command-line-basics/environment-variables-and-path.md
+new file mode 100644
+index 0000000..2ef0e84
+--- /dev/null
++++ b/content/command-line-basics/environment-variables-and-path.md
+@@ -0,0 +1,63 @@
++---
++title: "Environment Variables and PATH"
++category: "Tools"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Environment Variables and PATH
++
++"Command not found" is one of the most common terminal errors beginners hit, and it almost always comes down to `PATH`.
++
++## What `PATH` is
++
++`PATH` is an environment variable holding a list of folders. When you type a command like `python`, the shell searches every folder listed in `PATH`, in order, looking for a program with that name. If it's not found in any of them, you get "command not found" (bash/zsh) or "is not recognized" (PowerShell) — even if the program is genuinely installed somewhere on your machine, just not in a folder `PATH` knows about.
++
++## Viewing your current PATH
++
++| bash / zsh | PowerShell |
++|---|---|
++| `echo $PATH` | `$env:PATH` |
++
++The output is a list of folders separated by `:` (bash/zsh) or `;` (PowerShell).
++
++## Setting environment variables — this session only
++
++| bash / zsh | PowerShell |
++|---|---|
++| `export API_KEY="abc123"` | `$env:API_KEY = "abc123"` |
++
++Both of these only last until you close the terminal window. For anything a program needs every time, see the permanent options below.
++
++## Reading an environment variable
++
++| bash / zsh | PowerShell |
++|---|---|
++| `echo $API_KEY` | `echo $env:API_KEY` |
++
++## Adding something to PATH temporarily
++
++```bash
++export PATH="$PATH:/new/folder/to/add"
++```
++```powershell
++$env:PATH += ";C:\new\folder\to\add"
++```
++
++## Making a change permanent
++
++- **macOS/Linux (bash/zsh)**: add the `export` line to your shell's startup file — `~/.zshrc` (zsh, macOS default) or `~/.bashrc` (bash). It runs automatically every time you open a terminal.
++- **Windows (PowerShell)**: either add the `$env:` line to your PowerShell profile script (`$PROFILE`), or set it permanently through System Properties → Environment Variables, which applies system-wide rather than per-terminal.
++
++## Why this comes up constantly with dev tools
++
++Installers for Python, Node, or Git sometimes ask "add to PATH?" during setup — always say yes. If you skipped it, or installed something manually without an installer, that's almost always why the tool "isn't installed" as far as your terminal is concerned, even though the files exist on disk.
++
++## Quick reference
++
++| I want to... | bash/zsh | PowerShell |
++|---|---|---|
++| See current PATH | `echo $PATH` | `$env:PATH` |
++| Set a variable (this session) | `export NAME=value` | `$env:NAME = "value"` |
++| Read a variable | `echo $NAME` | `echo $env:NAME` |
++| Fix "command not found" permanently | Edit `~/.zshrc` / `~/.bashrc` | Edit `$PROFILE` or System Environment Variables |
+diff --git a/content/command-line-basics/index.md b/content/command-line-basics/index.md
+new file mode 100644
+index 0000000..e44f36d
+--- /dev/null
++++ b/content/command-line-basics/index.md
+@@ -0,0 +1,34 @@
++---
++title: "Command Line Basics"
++category: "Tools"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# Command Line Basics
++
++The terminal is a text-based way to control your computer — running programs, moving files, and automating tasks that would take much longer clicking through a GUI. Every tool covered elsewhere on this site (Git, Python, Node) is normally driven from one.
++
++## Which shell are you actually using?
++
++- **macOS / Linux** → almost always **bash** or **zsh** (zsh is the default on modern macOS). Commands in this section's tutorials work in either unless noted.
++- **Windows** → **PowerShell** is the modern default (opens as "Windows PowerShell" or "Terminal"). Windows also has an older Command Prompt (`cmd.exe`) — skip it; PowerShell is more capable and is what these tutorials assume.
++
++Everything in this section is written **side by side**: bash/zsh command next to its PowerShell equivalent, since you'll likely encounter both depending on your machine and what a teammate is using.
++
++## Opening a terminal
++
++- **macOS**: `Cmd+Space`, type "Terminal"
++- **Windows**: search "PowerShell" in the Start menu, or open the integrated terminal in VS Code (`` Ctrl+` ``)
++- **Linux**: varies by distro, usually `Ctrl+Alt+T`
++
++## What's in this section
++
++- **Navigating and Files** — moving around, creating/deleting files and folders
++- **Redirection and Pipes** — sending output to files, chaining commands together
++- **Environment Variables and PATH** — what `PATH` is and why "command not found" happens
++- **Productivity Habits** — tab completion, history search, aliases
++
++## One core habit worth building immediately
++
++**Tab completion.** Start typing a file or folder name and press `Tab` — the shell completes it for you. Works in both bash/zsh and PowerShell. This alone eliminates most typos and saves enormous time.
+diff --git a/content/command-line-basics/navigating-and-files.md b/content/command-line-basics/navigating-and-files.md
+new file mode 100644
+index 0000000..0344de3
+--- /dev/null
++++ b/content/command-line-basics/navigating-and-files.md
+@@ -0,0 +1,63 @@
++---
++title: "Navigating and Files"
++category: "Tools"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# Navigating and Files
++
++The same handful of operations — see where you are, move around, create/delete things — cover most of what you'll do in a terminal day to day.
++
++## Where am I / what's here
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Print current directory | `pwd` | `pwd` (or `Get-Location`) |
++| List files in current directory | `ls` | `ls` (or `Get-ChildItem`) |
++| List with details (size, date) | `ls -la` | `ls -la` (or `Get-ChildItem -Force`) |
++
++PowerShell actually aliases many Unix-style names (`ls`, `pwd`, `cd`) to its own longer cmdlets, so the short commands above work in both — good news for switching between them.
++
++## Moving around
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Change directory | `cd path/to/folder` | `cd path\to\folder` |
++| Go up one level | `cd ..` | `cd ..` |
++| Go to home directory | `cd ~` | `cd ~` |
++| Go to previous directory | `cd -` | `cd -` (PowerShell 7+) |
++
++Note the slash direction difference — bash/zsh use `/`, native Windows paths use `\`. Modern PowerShell tolerates `/` in most cases, but scripts you find online written for Windows will usually use `\`.
++
++## Creating things
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Create a folder | `mkdir new-folder` | `mkdir new-folder` (or `New-Item -ItemType Directory`) |
++| Create an empty file | `touch file.txt` | `New-Item file.txt` |
++
++## Copying, moving, renaming
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Copy a file | `cp source.txt dest.txt` | `cp source.txt dest.txt` (or `Copy-Item`) |
++| Copy a folder recursively | `cp -r source-folder dest-folder` | `cp -r source-folder dest-folder` |
++| Move / rename | `mv old.txt new.txt` | `mv old.txt new.txt` (or `Move-Item`) |
++
++## Deleting — the dangerous one
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Delete a file | `rm file.txt` | `rm file.txt` (or `Remove-Item`) |
++| Delete a folder and contents | `rm -rf folder-name` | `rm -r -force folder-name` |
++
++⚠️ There is no Recycle Bin / Trash for terminal deletion. `rm -rf` and `Remove-Item -Force` permanently delete — double check the path before hitting enter, especially with wildcards.
++
++## Viewing a file's contents quickly
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Print whole file | `cat file.txt` | `cat file.txt` (or `Get-Content`) |
++| First 10 lines | `head file.txt` | `Get-Content file.txt -Head 10` |
++| Last 10 lines | `tail file.txt` | `Get-Content file.txt -Tail 10` |
+diff --git a/content/command-line-basics/productivity-habits.md b/content/command-line-basics/productivity-habits.md
+new file mode 100644
+index 0000000..9d6ef83
+--- /dev/null
++++ b/content/command-line-basics/productivity-habits.md
+@@ -0,0 +1,74 @@
++---
++title: "Productivity Habits"
++category: "Tools"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# Productivity Habits
++
++These are the small habits that separate "can technically use a terminal" from "fast at a terminal." All work in both bash/zsh and PowerShell unless noted.
++
++## Tab completion
++
++Start typing a command, file, or folder name and press `Tab`. The shell completes it — or, if multiple things match, pressing `Tab` twice shows the options. Use this constantly; it prevents typos and saves you from typing long paths out by hand.
++
++```bash
++cd content/py<Tab>   # completes to content/python-fundamentals/
++```
++
++## Searching your command history
++
++Rather than pressing the up arrow repeatedly to find a command you ran earlier:
++
++| bash / zsh | PowerShell |
++|---|---|
++| `Ctrl+R`, then type part of the command | `Ctrl+R` (PSReadLine, default in modern PowerShell) |
++
++Keep pressing `Ctrl+R` to cycle through further matches.
++
++## Running the last command again
++
++| bash / zsh | PowerShell |
++|---|---|
++| `!!` | `↑` then Enter, or `r` in some configs |
++
++## Jumping to the start/end of a line you're typing
++
++Useful when you've typed a long command and need to fix something at the beginning:
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Start of line | `Ctrl+A` | `Home` |
++| End of line | `Ctrl+E` | `End` |
++| Clear the line | `Ctrl+U` | `Escape` |
++
++## Aliases — shortcuts for commands you type often
++
++**bash/zsh** — add to `~/.zshrc` or `~/.bashrc`:
++```bash
++alias gs="git status"
++alias gp="git push"
++```
++
++**PowerShell** — add to your profile (`$PROFILE`):
++```powershell
++Set-Alias gs git    # PowerShell aliases work slightly differently — often easier as a function:
++function gs { git status }
++```
++
++After editing either startup file, reload it (`source ~/.zshrc`) or just open a new terminal window for changes to take effect.
++
++## Clearing the screen
++
++| bash / zsh | PowerShell |
++|---|---|
++| `clear` or `Ctrl+L` | `cls` or `Ctrl+L` |
++
++## Stopping a running command
++
++`Ctrl+C` — works the same in both. Useful when a script is stuck in a loop or you started a dev server and want to shut it down.
++
++## The one habit worth building above all others
++
++Read error messages top to bottom before re-running anything. Terminal errors usually tell you exactly what went wrong and where — the instinct to immediately retry the same command rarely fixes the underlying issue.
+diff --git a/content/command-line-basics/redirection-and-pipes.md b/content/command-line-basics/redirection-and-pipes.md
+new file mode 100644
+index 0000000..10b5f3c
+--- /dev/null
++++ b/content/command-line-basics/redirection-and-pipes.md
+@@ -0,0 +1,82 @@
++---
++title: "Redirection and Pipes"
++category: "Tools"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Redirection and Pipes
++
++Real terminal productivity comes from combining small commands rather than running them one at a time. Redirection and pipes are how you do that.
++
++## Redirecting output to a file
++
++| Action | bash / zsh | PowerShell |
++|---|---|---|
++| Write output to a file (overwrite) | `command > output.txt` | `command > output.txt` |
++| Append output to a file | `command >> output.txt` | `command >> output.txt` |
++
++```bash
++python my_script.py > results.txt        # save script output instead of printing it
++git log --oneline > history.txt
++```
++
++## Piping — sending one command's output into another
++
++The pipe (`|`) takes the output of the command on the left and feeds it as input to the command on the right. Both shells use the same symbol:
++
++```bash
++# bash/zsh — find lines containing "error" in a log file
++cat server.log | grep "error"
++
++# PowerShell — same idea, filters objects instead of raw text
++Get-Content server.log | Select-String "error"
++```
++
++Chain as many as you like:
++
++```bash
++# List files, filter to .py files, count them
++ls | grep ".py" | wc -l
++```
++
++```powershell
++# PowerShell equivalent
++Get-ChildItem | Where-Object { $_.Name -like "*.py" } | Measure-Object | Select-Object -ExpandProperty Count
++```
++
++Note the difference in philosophy: bash pipes plain **text** between commands; PowerShell pipes **structured objects** (with properties), which is why its filtering syntax looks different even though the concept is identical.
++
++## Chaining commands with `&&`
++
++Run a second command only if the first one succeeds:
++
++```bash
++git add . && git commit -m "Update tutorial" && git push
++```
++```powershell
++git add . ; if ($?) { git commit -m "Update tutorial" ; if ($?) { git push } }
++# or, in PowerShell 7+:
++git add . && git commit -m "Update tutorial" && git push
++```
++PowerShell 7+ supports `&&` directly, matching bash. Older Windows PowerShell (5.1, pre-installed on Windows) does not — worth checking your version if `&&` doesn't seem to work.
++
++## Practical example: filtering command output
++
++```bash
++# Find all markdown files modified today, bash/zsh
++find . -name "*.md" -newermt "today"
++```
++```powershell
++# PowerShell equivalent
++Get-ChildItem -Filter *.md -Recurse | Where-Object { $_.LastWriteTime.Date -eq (Get-Date).Date }
++```
++
++## Quick reference
++
++| Symbol | Meaning |
++|---|---|
++| `>` | Redirect output to a file, overwriting it |
++| `>>` | Redirect output to a file, appending |
++| `\|` | Pipe: send output of one command into another |
++| `&&` | Run the next command only if the previous one succeeded |
+diff --git a/content/git-fundamentals/branching-and-merging.md b/content/git-fundamentals/branching-and-merging.md
+new file mode 100644
+index 0000000..9093b7d
+--- /dev/null
++++ b/content/git-fundamentals/branching-and-merging.md
+@@ -0,0 +1,83 @@
++---
++title: "Branching & Merging"
++category: "Tools"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# Branching & Merging
++
++A **branch** is an independent line of work off your main codebase. Branches let you build a feature, fix a bug, or write a new tutorial without touching `main` until it's ready.
++
++## Why bother branching
++
++Committing straight to `main` works fine solo, but breaks down the moment more than one person touches the repo — someone's half-finished change can block or conflict with someone else's. Branching isolates work until it's ready to combine.
++
++## Creating and switching branches
++
++```bash
++# Create a new branch and switch to it in one step
++git checkout -b add-git-tutorial
++
++# Or, on newer Git versions
++git switch -c add-git-tutorial
++
++# Switch back to an existing branch
++git checkout main
++git switch main
++
++# List all branches (current one is marked with *)
++git branch
++```
++
++## Making changes on a branch
++
++Work exactly as normal — add, commit — it just stays isolated to this branch until merged:
++
++```bash
++git add content/git-fundamentals/branching-and-merging.md
++git commit -m "Add branching and merging tutorial"
++git push -u origin add-git-tutorial   # -u links this branch to GitHub the first time
++```
++
++## Merging back into main
++
++Two common ways:
++
++**Locally, with `git merge`:**
++```bash
++git checkout main
++git pull                          # make sure main is up to date first
++git merge add-git-tutorial
++git push
++```
++
++**Or, more commonly for team projects — open a Pull Request on GitHub.** Push your branch, then use GitHub's "Compare & pull request" button. This lets others review the diff before it merges into `main`, and is the standard workflow for anything beyond a solo quick fix.
++
++## Merge conflicts
++
++A conflict happens when the same lines were changed differently on two branches. Git will mark the conflicting section directly in the file:
++
++```
++<<<<<<< HEAD
++This is the version on main.
++=======
++This is the version on your branch.
++>>>>>>> add-git-tutorial
++```
++
++To resolve: edit the file to keep the version you want (or a combination), delete the `<<<<<<<`, `=======`, `>>>>>>>` markers, then:
++
++```bash
++git add <the-file-you-fixed>
++git commit
++```
++
++Conflicts feel alarming the first time — they're normal, and the file always tells you exactly where to look.
++
++## Deleting a branch once merged
++
++```bash
++git branch -d add-git-tutorial              # local
++git push origin --delete add-git-tutorial   # remote, on GitHub
++```
+diff --git a/content/git-fundamentals/collaborating-with-remotes.md b/content/git-fundamentals/collaborating-with-remotes.md
+new file mode 100644
+index 0000000..0d6d0b4
+--- /dev/null
++++ b/content/git-fundamentals/collaborating-with-remotes.md
+@@ -0,0 +1,83 @@
++---
++title: "Collaborating with Remotes"
++category: "Tools"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Collaborating with Remotes
++
++A **remote** is a version of your repository hosted elsewhere — almost always GitHub for this club. Understanding forks vs. clones, and how to keep everything in sync, is what makes group contribution actually work.
++
++## Clone vs. Fork
++
++- **Clone** — a direct copy of a repo you already have write access to (e.g. you're a member of the `Ingenium-Society` GitHub org). You push directly back to the same repo.
++- **Fork** — your own personal copy of someone else's repo on GitHub. Used when you don't have write access, or want to propose changes without touching the original directly. You push to your fork, then open a Pull Request asking the original repo to pull in your changes.
++
++```bash
++# Cloning (you have direct write access)
++git clone https://github.com/Ingenium-Society/find-sh.git
++
++# After forking on GitHub, clone YOUR fork
++git clone https://github.com/your-username/find-sh.git
++```
++
++## Working with a fork: keeping it in sync
++
++Forks go stale — the original repo (`upstream`) moves on while your fork stays frozen at the point you forked it. Add the original as a second remote called `upstream`:
++
++```bash
++git remote add upstream https://github.com/Ingenium-Society/find-sh.git
++git remote -v          # confirm you now have both "origin" (your fork) and "upstream"
++```
++
++Sync your fork before starting new work:
++
++```bash
++git fetch upstream
++git checkout main
++git merge upstream/main
++git push origin main   # update your fork on GitHub too
++```
++
++## Opening a Pull Request (PR)
++
++1. Push your branch (on a clone: your branch on the shared repo; on a fork: your branch on your fork).
++2. On GitHub, click "Compare & pull request."
++3. Write a clear description: what changed and why.
++4. A maintainer/advisor reviews, comments, and merges once it looks good.
++
++## Handling review feedback
++
++If a reviewer asks for changes, just keep committing to the same branch — the PR updates automatically:
++
++```bash
++# make the requested edits
++git add .
++git commit -m "Address review feedback"
++git push
++```
++
++## Resolving conflicts against the target branch
++
++If `main` moved on while your PR was open, GitHub may show a conflict. Bring your branch up to date locally and resolve it there rather than on GitHub's web editor:
++
++```bash
++git checkout your-branch
++git fetch origin
++git merge origin/main
++# resolve conflicts as covered in "Undoing Changes" / branching guide
++git add .
++git commit
++git push
++```
++
++## Quick reference
++
++| Situation | What to do |
++|---|---|
++| You have write access to the repo | Clone it directly |
++| You don't have write access | Fork it, clone your fork |
++| Your fork is out of date | Add `upstream` remote, `fetch` + `merge` |
++| Ready to propose changes | Push your branch, open a PR |
++| Reviewer requests changes | Commit + push to the same branch |
+diff --git a/content/what-is-git.md b/content/git-fundamentals/index.md
+similarity index 69%
+rename from content/what-is-git.md
+rename to content/git-fundamentals/index.md
+index 6bc74b5..2ba0791 100644
+--- a/content/what-is-git.md
++++ b/content/git-fundamentals/index.md
+@@ -1,17 +1,17 @@
+ ---
+-title: "What is Git?"
++title: "Git Fundamentals"
+ category: "Tools"
+ difficulty: "beginner"
+-updatedAt: "2026-09-07"
++updatedAt: "2026-09-08"
+ ---
+ 
+-# What is Git?
++# Git Fundamentals
+ 
+ Git is a **version control system** — it tracks changes to files over time, so you can see history, undo mistakes, and let multiple people work on the same project without overwriting each other's work.
+ 
+-**GitHub** is a separate thing: a website that hosts Git repositories online. Git is the tool; GitHub is where you can store and share the result. This distinction trips people up constantly — Git works fine with no internet connection at all; GitHub is just the most common remote host for it.
++**GitHub** is a separate thing: a website that hosts Git repositories online. Git is the tool; GitHub is where you can store and share the result. Git works fine with no internet connection at all — GitHub is just the most common remote host for it.
+ 
+-This matters directly for this tutorial site: every content update happens by committing a markdown file change and pushing it to GitHub, which triggers a rebuild.
++This matters directly for this site: every content update happens by committing a markdown file change and pushing it to GitHub, which triggers a rebuild.
+ 
+ ## Core concepts
+ 
+@@ -40,12 +40,12 @@ git clone https://github.com/your-org/your-repo.git
+ # Check what's changed
+ git status
+ 
+-# Stage changes (mark them to be included in the next commit)
+-git add wiring-guide.md
++# Stage changes
++git add syntax-basics.md
+ git add .              # stage everything changed
+ 
+ # Commit staged changes with a message
+-git commit -m "Add Python syntax basics guide"
++git commit -m "Add syntax basics section to Python guide"
+ 
+ # Send commits to GitHub
+ git push
+@@ -64,17 +64,8 @@ git commit -m "Add syntax basics section to Python guide"
+ git push                                  # triggers a rebuild on the live site
+ ```
+ 
+-## Branches, briefly
+-
+-For anything bigger than a quick fix, work on a branch instead of committing straight to `main`:
+-
+-```bash
+-git checkout -b add-git-tutorial   # create and switch to a new branch
+-# make your changes, add, commit as above
+-git push -u origin add-git-tutorial
+-```
+-Then open a **pull request** on GitHub to merge it into `main` once it's reviewed.
+-
+ ## Common gotcha
+ 
+ `git add` and `git commit` only affect your local machine. Nothing reaches GitHub — and nothing shows up on the live site — until you run `git push`.
++
++Explore the sub-tutorials in this folder for branching, undoing mistakes, and working with remotes/forks.
+diff --git a/content/git-fundamentals/undoing-changes.md b/content/git-fundamentals/undoing-changes.md
+new file mode 100644
+index 0000000..63e413d
+--- /dev/null
++++ b/content/git-fundamentals/undoing-changes.md
+@@ -0,0 +1,88 @@
++---
++title: "Undoing Changes"
++category: "Tools"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Undoing Changes
++
++Mistakes happen constantly with Git — the good news is almost everything is recoverable. Which command to use depends on exactly what you're trying to undo.
++
++## Discard uncommitted changes to a file
++
++You edited a file but haven't staged or committed it, and want to throw the edits away:
++
++```bash
++git checkout -- wiring-guide.md     # older syntax
++git restore wiring-guide.md         # newer, clearer syntax
++```
++
++## Unstage a file (but keep the edits)
++
++You ran `git add` by mistake and want to un-stage it without losing your changes:
++
++```bash
++git restore --staged wiring-guide.md
++```
++
++## Fix your last commit message or add a forgotten file
++
++```bash
++git add forgotten-file.md
++git commit --amend -m "Corrected commit message"
++```
++⚠️ Only amend commits that **haven't been pushed yet**. Amending a pushed commit rewrites history and will cause problems for anyone who already pulled it.
++
++## Undo a commit but keep the changes in your working directory
++
++Useful when you committed too early and want to re-group the changes:
++
++```bash
++git reset --soft HEAD~1
++```
++
++## Undo a commit and discard the changes entirely
++
++```bash
++git reset --hard HEAD~1
++```
++⚠️ This permanently deletes those changes. There's no undo for `--hard` once it runs, so double check `git log` first if you're unsure.
++
++## Undo a commit that's already been pushed/shared
++
++Don't rewrite shared history with `reset`. Instead, use `revert`, which creates a **new** commit that undoes the old one — safe for shared branches:
++
++```bash
++git revert <commit-hash>
++```
++
++## Temporarily shelve unfinished work
++
++Need to switch branches but aren't ready to commit? `stash` sets your changes aside without committing them:
++
++```bash
++git stash              # save current changes, revert working directory to last commit
++git stash list          # see what's stashed
++git stash pop           # reapply the most recent stash and remove it from the list
++```
++
++## Finding a commit hash
++
++Most of the commands above need a commit hash (or `HEAD~N` for "N commits ago"). Find one with:
++
++```bash
++git log --oneline
++```
++
++## Quick reference
++
++| I want to... | Command |
++|---|---|
++| Discard uncommitted edits to a file | `git restore <file>` |
++| Unstage a file | `git restore --staged <file>` |
++| Fix my last commit | `git commit --amend` |
++| Undo last commit, keep changes | `git reset --soft HEAD~1` |
++| Undo last commit, discard changes | `git reset --hard HEAD~1` |
++| Undo a pushed commit safely | `git revert <hash>` |
++| Set changes aside temporarily | `git stash` / `git stash pop` |
+diff --git a/content/python-fundamentals/dependency-files.md b/content/python-fundamentals/dependency-files.md
+new file mode 100644
+index 0000000..a07bc2e
+--- /dev/null
++++ b/content/python-fundamentals/dependency-files.md
+@@ -0,0 +1,76 @@
++---
++title: "Dependency Files"
++category: "Languages"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Dependency Files
++
++When you share a Python project, other people need to know exactly which packages (and versions) to install. That's what dependency files are for — without one, "works on my machine" is guaranteed.
++
++## `requirements.txt` — the classic approach
++
++A plain text list of packages, optionally pinned to versions:
++
++```
++requests==2.31.0
++numpy>=1.24
++pandas
++```
++
++Generate one from your current environment:
++```bash
++pip freeze > requirements.txt
++```
++
++Install from one:
++```bash
++pip install -r requirements.txt
++```
++
++Simple, but it only lists packages — no project metadata (name, version, entry points), and no separation between "packages I need" and "packages my packages need" (transitive dependencies), which can make files noisy.
++
++## `pyproject.toml` — the modern standard
++
++A single structured file that covers dependencies *and* project metadata (name, version, description) in one place. This is what modern tools (`uv`, `poetry`, `pip` itself) expect by default now.
++
++```toml
++[project]
++name = "my-project"
++version = "0.1.0"
++dependencies = [
++    "requests>=2.31.0",
++    "numpy>=1.24",
++]
++
++[project.optional-dependencies]
++dev = ["pytest", "ruff"]
++```
++
++Install everything listed:
++```bash
++uv sync           # if using uv
++pip install .     # standard pip, installs the project + its dependencies
++```
++
++## Lockfiles — exact, reproducible versions
++
++`pyproject.toml` often specifies *ranges* (`>=2.31.0`), which means two people running `install` on different days could get different exact versions. A **lockfile** (e.g. `uv.lock`) records the exact resolved version of every package, so every install is byte-for-byte identical.
++
++```bash
++uv lock         # generate/update the lockfile
++uv sync         # install exactly what's in the lockfile
++```
++
++Commit the lockfile to Git. Don't commit `venv/`.
++
++## Which should you use?
++
++| Situation | Use |
++|---|---|
++| Quick script, sharing with one other person | `requirements.txt` is fine |
++| A real project with metadata, optional dependency groups | `pyproject.toml` |
++| Need everyone to get identical exact versions | `pyproject.toml` + a lockfile (`uv.lock`) |
++
++For new club projects, default to `pyproject.toml` + `uv` — it covers all three cases above without needing to migrate later.
+diff --git a/content/python-fundamentals/environment-management.md b/content/python-fundamentals/environment-management.md
+new file mode 100644
+index 0000000..13ca42b
+--- /dev/null
++++ b/content/python-fundamentals/environment-management.md
+@@ -0,0 +1,50 @@
++---
++title: "Environment Management"
++category: "Languages"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Environment Management
++
++Every Python install has one "global" set of packages by default. The moment you work on more than one project, this becomes a problem.
++
++## Why "just install it globally" breaks down
++
++Say Project A needs `numpy==1.24` and Project B needs `numpy==2.0`. If both packages live in the same global Python install, only one version can exist at a time — installing one for Project B silently breaks Project A. This is called **dependency conflict**, and it's the single most common reason "it worked yesterday" stops being true.
++
++The fix: give every project its own isolated set of packages. That's what a **virtual environment** does (see the dedicated tutorial in this section for hands-on commands).
++
++## System Python vs. project Python
++
++Your operating system may already have a Python installed for its own internal use (common on macOS/Linux). **Don't install project packages into this one** — treat it as off-limits. Always create a fresh virtual environment per project instead of touching the system install.
++
++## Managing multiple Python versions
++
++Sometimes you need more than one *version* of Python itself — one project needs Python 3.10, another needs 3.12. A few options:
++
++- **`uv`** (recommended, see the package manager tutorial) can also install and switch Python versions directly: `uv python install 3.12`
++- **`pyenv`** (macOS/Linux) — the traditional tool for this, lets you install multiple Python versions side by side and set a per-project version via a `.python-version` file.
++- Windows users: the [python.org installer](https://www.python.org/downloads/) lets multiple versions coexist; use the `py` launcher (`py -3.10`, `py -3.12`) to pick one.
++
++## A sane default workflow
++
++For any new project:
++
++```bash
++mkdir my-project && cd my-project
++python -m venv venv          # or: uv venv
++source venv/bin/activate     # macOS/Linux
++venv\Scripts\activate        # Windows
++pip install <whatever you need>
++```
++
++Repeat this per project. Never share one virtual environment across multiple unrelated projects — the isolation is the entire point.
++
++## Quick reference
++
++| Problem | Solution |
++|---|---|
++| Two projects need different package versions | Separate virtual environment per project |
++| Two projects need different Python versions | `pyenv`, `uv python install`, or the `py` launcher (Windows) |
++| "It works on my machine but not theirs" | Check the dependency file (`requirements.txt`/`pyproject.toml`) is actually up to date and committed |
+diff --git a/content/python-fundamentals/index.md b/content/python-fundamentals/index.md
+index 630bdd8..b8c258b 100644
+--- a/content/python-fundamentals/index.md
++++ b/content/python-fundamentals/index.md
+@@ -2,7 +2,7 @@
+ title: "Python Fundamentals"
+ category: "Languages"
+ difficulty: "beginner"
+-updatedAt: "2026-09-07"
++updatedAt: "2026-09-08"
+ ---
+ 
+ # Python Fundamentals
+@@ -14,4 +14,25 @@ name = "Ingenium"
+ print(f"Hello, {name}!")
+ ```
+ 
+-Explore the sub-tutorials in this folder to learn syntax basics, working with libraries, and more.
++## Why it matters for club work
++
++- **Data processing** — parsing logs, cleaning CSV exports, or crunching numbers for a report is faster in Python than almost anything else.
++- **Scripting and automation** — small scripts to rename files, scrape data, or batch-process results save huge amounts of manual work.
++- **AI/ML** — nearly every machine learning library (PyTorch, TensorFlow, scikit-learn) is Python-first.
++
++## Getting set up
++
++1. Install Python from [python.org](https://www.python.org/downloads/).
++2. Verify: `python --version` (or `python3 --version`).
++3. Write a file `hello.py` and run it: `python hello.py`.
++
++## What's in this section
++
++- **Syntax Basics** — variables, conditionals, loops, functions.
++- **Environment Management** — why "just install it globally" causes problems later, virtual environments, and switching Python versions.
++- **Project Structure** — how a real Python project is laid out once it's more than one file.
++- **Running Python Scripts** — `python file.py` vs `python -m`, and the `if __name__ == "__main__":` pattern.
++- **Dependency Files** — `requirements.txt`, `pyproject.toml`, and lockfiles.
++- **Package Managers: uv & pip** — installing and managing libraries.
++- **Virtual Environments** — isolating dependencies per project.
++- **Working with Libraries** — using `pip`-installed packages in your code.
+diff --git a/content/python-fundamentals/project-structure.md b/content/python-fundamentals/project-structure.md
+new file mode 100644
+index 0000000..c79c41a
+--- /dev/null
++++ b/content/python-fundamentals/project-structure.md
+@@ -0,0 +1,73 @@
++---
++title: "Project Structure"
++category: "Languages"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Project Structure
++
++A single `script.py` is fine for a quick task. The moment a project grows past that, an unstructured folder of files becomes hard to navigate and easy to break. Here's a layout that scales.
++
++## A minimal real project
++
++```
++my-project/
++├── src/
++│   └── my_project/
++│       ├── __init__.py
++│       ├── main.py
++│       └── utils.py
++├── tests/
++│   └── test_utils.py
++├── venv/                  # virtual environment — never commit this
++├── .gitignore
++├── pyproject.toml         # or requirements.txt
++└── README.md
++```
++
++## Why `src/`
++
++Putting your actual package inside a `src/` folder (rather than directly in the project root) avoids a common bug: without it, Python can sometimes accidentally import your *uninstalled, half-finished* local files instead of the properly installed package, masking real import errors. The `src/` layout is now the generally recommended default for anything beyond a single script.
++
++## What `__init__.py` does
++
++An empty `__init__.py` file marks a folder as a **package** — it tells Python "this folder can be imported from." Since Python 3.3 it's technically optional for basic imports, but keep including it; it avoids subtle import ambiguity and is still the norm in real codebases.
++
++## Where `main.py` goes and what it's for
++
++`main.py` is conventionally your **entry point** — the file you actually run. Logic that could be reused (helper functions, classes) belongs in other files like `utils.py`, imported into `main.py`, rather than piling everything into one file.
++
++```python
++# src/my_project/utils.py
++def greet(name: str) -> str:
++    return f"Hello, {name}!"
++```
++
++```python
++# src/my_project/main.py
++from my_project.utils import greet
++
++def main():
++    print(greet("Ingenium"))
++
++if __name__ == "__main__":
++    main()
++```
++
++(See the "Running Python Scripts" tutorial in this section for what that last `if` block is doing.)
++
++## `.gitignore` — don't commit these
++
++```
++venv/
++__pycache__/
++*.pyc
++.env
++```
++
++Virtual environments and cache files are machine-specific and huge — never commit them. `.env` (API keys/secrets) should never be committed either; see the API tutorials for more on that.
++
++## When to actually bother with this structure
++
++For a five-line script, don't — plain `script.py` is fine. Reach for this structure once a project has multiple files that import from each other, or once more than one person is working on it.
+diff --git a/content/python-fundamentals/running-python-scripts.md b/content/python-fundamentals/running-python-scripts.md
+new file mode 100644
+index 0000000..417b879
+--- /dev/null
++++ b/content/python-fundamentals/running-python-scripts.md
+@@ -0,0 +1,72 @@
++---
++title: "Running Python Scripts"
++category: "Languages"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# Running Python Scripts
++
++There's more than one way to run Python code, and picking the right one avoids a lot of confusing errors.
++
++## `python file.py` vs `python -m module`
++
++```bash
++# Runs the file directly by path
++python src/my_project/main.py
++
++# Runs a module by import name — Python resolves the path for you
++python -m my_project.main
++```
++
++`-m` runs the file as part of your package, with imports resolved the same way they will be when your code is actually installed/used elsewhere. Plain `python file.py` runs it standalone, which can behave subtly differently with relative imports. When in doubt, especially inside a `src/`-structured project, prefer `-m`.
++
++## The `if __name__ == "__main__":` pattern
++
++Every Python file has a built-in variable called `__name__`. When a file is run directly, `__name__` is set to `"__main__"`. When that same file is *imported* by another file, `__name__` is set to the module's name instead.
++
++```python
++def greet(name):
++    return f"Hello, {name}!"
++
++if __name__ == "__main__":
++    print(greet("Ingenium"))
++```
++
++Why this matters: if another file does `from this_file import greet`, you don't want the `print(...)` line to run automatically just because it got imported. Wrapping "code that should only run when this file is executed directly" in that `if` block is the standard way to prevent that.
++
++## Reading command-line arguments
++
++For scripts that take input from the terminal, use `argparse` (built into Python, no install needed):
++
++```python
++import argparse
++
++parser = argparse.ArgumentParser(description="Greet someone")
++parser.add_argument("name", help="Name to greet")
++parser.add_argument("--loud", action="store_true", help="Shout the greeting")
++
++args = parser.parse_args()
++
++message = f"Hello, {args.name}!"
++if args.loud:
++    message = message.upper()
++
++print(message)
++```
++
++```bash
++python greet.py Ingenium
++python greet.py Ingenium --loud
++```
++
++`argparse` also auto-generates a `--help` flag and error messages for free — always more robust than manually parsing `sys.argv`.
++
++## Quick reference
++
++| I want to... | Use |
++|---|---|
++| Run a standalone script | `python file.py` |
++| Run a file as part of a package with correct imports | `python -m package.module` |
++| Prevent code from running on import | `if __name__ == "__main__":` |
++| Accept input from the command line | `argparse` |
+diff --git a/content/running-js-and-ts.md b/content/running-js-and-ts.md
+new file mode 100644
+index 0000000..2a294e7
+--- /dev/null
++++ b/content/running-js-and-ts.md
+@@ -0,0 +1,88 @@
++---
++title: "Running JS & TS"
++category: "Languages"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# Running JS & TS
++
++JavaScript runs natively in Node.js. TypeScript is different — it isn't valid JavaScript on its own, so something has to turn it into JS first. Exactly how depends on your Node version.
++
++## Running plain JavaScript
++
++```bash
++node index.js
++```
++Always works, no setup needed.
++
++## Running package.json scripts
++
++Real projects define reusable commands in `package.json`:
++
++```json
++{
++  "scripts": {
++    "dev": "next dev",
++    "build": "next build",
++    "start": "next start"
++  }
++}
++```
++Run them with:
++```bash
++npm run dev
++```
++This is how you start this tutorial site's dev server locally.
++
++## Running TypeScript — it depends on your Node version
++
++Since Node.js version 22.18.0, "type stripping" is enabled by default, letting you run TypeScript files directly as long as the code only uses "erasable" TypeScript syntax — type annotations, interfaces, type aliases — nothing that needs actual code generation.
++
++```bash
++node index.ts
++```
++
++**What still won't run this way:** syntax that requires transformation, like `enum` and `namespace`, since those aren't purely type annotations — they generate real JavaScript behavior, not just information for the type checker.
++
++**Version cheat sheet:**
++
++| Node version | Behavior |
++|---|---|
++| Below 22.6 | No native TS support — use `tsx` or `ts-node` (below) |
++| 22.6 – 22.17 | Works with `--experimental-strip-types` flag |
++| 22.18+ / 23.6+ | Works with plain `node file.ts`, no flag needed, erasable syntax only |
++
++Check your version with `node --version` before assuming either way.
++
++**Important:** Node does not type-check your code when running it this way — it only strips the annotations. Run `tsc --noEmit` separately (or rely on your editor's TypeScript integration) to actually catch type errors.
++
++## Older Node / need full TypeScript features (enums, decorators, etc.)
++
++Use a runner that fully transpiles first:
++
++```bash
++npx tsx index.ts
++```
++`tsx` (unrelated to Next.js `.tsx` files, despite the name) is a fast, zero-config TypeScript runner that supports the full language, not just erasable syntax.
++
++## Compiling TypeScript to JavaScript for deployment
++
++For production, TypeScript is normally compiled ahead of time rather than run directly:
++
++```bash
++npx tsc          # reads tsconfig.json, outputs .js files
++node dist/index.js
++```
++
++Frameworks like Next.js handle this compilation step for you automatically as part of `npm run build` — you never call `tsc` directly in a Next.js project.
++
++## Quick reference
++
++| I want to... | Command |
++|---|---|
++| Run a JS file | `node index.js` |
++| Run a project script | `npm run <script-name>` |
++| Run simple TS directly (modern Node) | `node index.ts` |
++| Run any TS regardless of Node version/syntax | `npx tsx index.ts` |
++| Compile TS to JS for deployment | `npx tsc` |
+diff --git a/content/typescript-and-javascript.md b/content/typescript-and-javascript.md
+index ee3bf11..71d1c55 100644
+--- a/content/typescript-and-javascript.md
++++ b/content/typescript-and-javascript.md
+@@ -22,8 +22,4 @@ console.log(greeting);
+ 
+ ## Running TypeScript
+ 
+-Node.js executes JavaScript/TypeScript runtime environments. You can run TS files directly with modern runtimes like Node or Bun:
+-
+-```bash
+-node index.ts
+-```
++TypeScript needs to be converted to JavaScript before most environments can run it — see the dedicated "Running JS & TS" tutorial in this section for exactly how, including which Node versions can run `.ts` files directly and which still need a compile step.
+diff --git a/content/what-is-python.md b/content/what-is-python.md
+deleted file mode 100644
+index 1f1bf8f..0000000
+--- a/content/what-is-python.md
++++ /dev/null
+@@ -1,29 +0,0 @@
+----
+-title: "What is Python?"
+-category: "Languages"
+-difficulty: "beginner"
+-updatedAt: "2026-09-07"
+----
+-
+-# What is Python?
+-
+-Python is a general-purpose programming language known for readable syntax and a huge ecosystem of libraries. It's one of the easiest languages to start with because the code reads almost like plain English.
+-
+-```python
+-name = "Ingenium"
+-print(f"Hello, {name}!")
+-```
+-
+-## Why it matters for engineering projects
+-
+-Python shows up constantly in practical club work:
+-
+-- **Data processing** — parsing logs, cleaning CSV exports, or crunching numbers for a report is faster in Python than almost anything else.
+-- **Scripting and automation** — small scripts to rename files, scrape data, or batch-process results save huge amounts of manual work.
+-- **AI/ML** — nearly every machine learning library (PyTorch, TensorFlow, scikit-learn) is Python-first.
+-
+-## Getting set up
+-
+-1. Install Python from [python.org](https://www.python.org/downloads/).
+-2. Verify: `python --version` (or `python3 --version`).
+-3. Write a file `hello.py` and run it: `python hello.py`.
+diff --git a/content/working-with-apis/api-keys-and-secrets.md b/content/working-with-apis/api-keys-and-secrets.md
+new file mode 100644
+index 0000000..7150771
+--- /dev/null
++++ b/content/working-with-apis/api-keys-and-secrets.md
+@@ -0,0 +1,84 @@
++---
++title: "API Keys and Secrets"
++category: "Concepts"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# API Keys and Secrets
++
++This matters more than it might seem: **this project's repo is public on GitHub.** Anything committed to it — including old commits — is visible to anyone, forever, even if you delete the line later. A leaked API key in a public repo will typically get found and abused within minutes by automated scanners, not eventually.
++
++## The rule
++
++Never write a real API key, password, or token directly into a `.py`, `.js`, or `.ts` file that gets committed. Always load secrets from somewhere outside the code itself.
++
++## Using environment variables
++
++Store the key as an environment variable instead of hardcoding it — see "Environment Variables and PATH" in the Command Line Basics section for the underlying concept.
++
++**Python:**
++```python
++import os
++API_KEY = os.environ["WEATHER_API_KEY"]
++```
++
++**JavaScript/Node:**
++```javascript
++const API_KEY = process.env.WEATHER_API_KEY;
++```
++
++## Using a `.env` file for local development
++
++Typing `export` every time you open a terminal is tedious. A `.env` file holds these locally:
++
++```
++WEATHER_API_KEY=abc123yourrealkey
++```
++
++**Python** — install `python-dotenv`:
++```bash
++pip install python-dotenv
++```
++```python
++from dotenv import load_dotenv
++import os
++
++load_dotenv()  # reads .env into the environment
++API_KEY = os.environ["WEATHER_API_KEY"]
++```
++
++**Node.js** — modern versions support this natively:
++```bash
++node --env-file=.env index.js
++```
++Or with a framework like Next.js, `.env.local` is picked up automatically — no extra code needed.
++
++## The single most important step: `.gitignore`
++
++`.env` must never be committed. Add it to `.gitignore` **before** you ever create the file:
++
++```
++.env
++.env.local
++```
++
++If you already accidentally committed a real key: **treat the key as compromised.** Deleting the line in a new commit is not enough — old commits still contain it in the repo's history. Go to wherever the API key was issued and regenerate/revoke it immediately, then remove it going forward.
++
++## Sharing what teammates need without sharing the actual secret
++
++Commit a `.env.example` file with the variable names but placeholder values, so others know what to set up themselves:
++
++```
++WEATHER_API_KEY=your_key_here
++```
++This file is safe to commit — it contains no real secrets, just documentation of what's expected.
++
++## Quick reference
++
++| Do | Don't |
++|---|---|
++| Load keys via `os.environ` / `process.env` | Paste the real key directly into a `.py`/`.js` file |
++| Add `.env` to `.gitignore` immediately | Commit `.env` "just this once" |
++| Commit a `.env.example` with placeholders | Assume deleting a line removes it from Git history |
++| Regenerate a key if it's ever exposed | Just remove the exposed key and hope no one saw it |
+diff --git a/content/working-with-apis/calling-apis-javascript.md b/content/working-with-apis/calling-apis-javascript.md
+new file mode 100644
+index 0000000..af864a0
+--- /dev/null
++++ b/content/working-with-apis/calling-apis-javascript.md
+@@ -0,0 +1,117 @@
++---
++title: "Calling APIs in JavaScript"
++category: "Languages"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Calling APIs in JavaScript
++
++`fetch` is built into both browsers and modern Node.js — no library install needed for basic use.
++
++## A basic GET request
++
++```javascript
++const response = await fetch("https://api.example.com/events");
++const data = await response.json();
++console.log(data);
++```
++Note the two `await`s: one to get the response object itself, a second because parsing the body as JSON is *also* asynchronous.
++
++## `async`/`await` context
++
++`await` only works inside a function marked `async`:
++
++```javascript
++async function getEvents() {
++  const response = await fetch("https://api.example.com/events");
++  const data = await response.json();
++  return data;
++}
++```
++
++## Sending query parameters
++
++```javascript
++const url = new URL("https://api.example.com/events");
++url.searchParams.set("year", "2027");
++url.searchParams.set("limit", "10");
++
++const response = await fetch(url);
++```
++
++## Sending a POST request with a JSON body
++
++```javascript
++const response = await fetch("https://api.example.com/attendance", {
++  method: "POST",
++  headers: { "Content-Type": "application/json" },
++  body: JSON.stringify({ student_id: "12345", status: "present" })
++});
++```
++Unlike Python's `requests`, `fetch` doesn't auto-set headers or serialize the body for you — both lines above are required.
++
++## Adding authentication headers
++
++```javascript
++const response = await fetch("https://api.example.com/private-data", {
++  headers: { "Authorization": "Bearer YOUR_API_KEY" }
++});
++```
++See "API Keys and Secrets" in this section — never hardcode a real key directly in committed code.
++
++## Checking for errors properly
++
++A key gotcha: `fetch` does **not** throw an error on a 404 or 500 response — only on true network failure. You have to check `response.ok` yourself:
++
++```javascript
++async function getEvents() {
++  try {
++    const response = await fetch("https://api.example.com/events");
++    if (!response.ok) {
++      throw new Error(`Request failed: ${response.status}`);
++    }
++    return await response.json();
++  } catch (error) {
++    console.error("Failed to fetch events:", error);
++    return null;
++  }
++}
++```
++
++## A complete small example
++
++```javascript
++async function getWeather(city) {
++  const API_KEY = process.env.WEATHER_API_KEY; // loaded from environment, see API Keys tutorial
++
++  try {
++    const url = new URL("https://api.weatherapi.com/v1/current.json");
++    url.searchParams.set("key", API_KEY);
++    url.searchParams.set("q", city);
++
++    const response = await fetch(url);
++    if (!response.ok) {
++      throw new Error(`Request failed: ${response.status}`);
++    }
++    const data = await response.json();
++    return data.current.temp_c;
++  } catch (error) {
++    console.error("Failed to fetch weather:", error);
++    return null;
++  }
++}
++
++const temp = await getWeather("Yogyakarta");
++console.log(temp);
++```
++
++## Quick reference
++
++| I want to... | Code |
++|---|---|
++| Simple GET | `await fetch(url)` |
++| Parse response as JSON | `await response.json()` |
++| Check for HTTP errors | `if (!response.ok) { ... }` |
++| POST with JSON body | `fetch(url, { method: "POST", headers: {...}, body: JSON.stringify(data) })` |
++| Add auth header | `fetch(url, { headers: { Authorization: "Bearer ..." } })` |
+diff --git a/content/working-with-apis/calling-apis-python.md b/content/working-with-apis/calling-apis-python.md
+new file mode 100644
+index 0000000..83fbe5c
+--- /dev/null
++++ b/content/working-with-apis/calling-apis-python.md
+@@ -0,0 +1,115 @@
++---
++title: "Calling APIs in Python"
++category: "Languages"
++difficulty: "intermediate"
++updatedAt: "2026-09-08"
++---
++
++# Calling APIs in Python
++
++The `requests` library is the standard way to call APIs in Python. It isn't built in, so install it first:
++
++```bash
++pip install requests
++```
++
++## A basic GET request
++
++```python
++import requests
++
++response = requests.get("https://api.example.com/events")
++
++print(response.status_code)   # e.g. 200
++data = response.json()        # parses the JSON response into a Python dict/list
++print(data)
++```
++
++## Sending query parameters
++
++```python
++response = requests.get(
++    "https://api.example.com/events",
++    params={"year": 2027, "limit": 10}
++)
++# Automatically becomes: https://api.example.com/events?year=2027&limit=10
++```
++
++## Sending a POST request with a JSON body
++
++```python
++response = requests.post(
++    "https://api.example.com/attendance",
++    json={"student_id": "12345", "status": "present"}
++)
++```
++Using `json=` (rather than manually building a string) automatically sets the right headers and serializes the dictionary for you.
++
++## Adding authentication headers
++
++Most APIs expect a key in the request headers:
++
++```python
++headers = {"Authorization": "Bearer YOUR_API_KEY"}
++response = requests.get("https://api.example.com/private-data", headers=headers)
++```
++See "API Keys and Secrets" in this section for how `YOUR_API_KEY` should actually be stored — never hardcode it directly in a file that gets committed to Git.
++
++## Checking for errors properly
++
++Don't assume success — check before using the response:
++
++```python
++response = requests.get("https://api.example.com/events")
++
++if response.status_code == 200:
++    data = response.json()
++else:
++    print(f"Request failed: {response.status_code}")
++```
++
++Or, let `requests` raise an exception automatically on failure:
++
++```python
++try:
++    response = requests.get("https://api.example.com/events")
++    response.raise_for_status()   # raises an exception for 4xx/5xx responses
++    data = response.json()
++except requests.exceptions.RequestException as e:
++    print(f"Request failed: {e}")
++```
++
++## A complete small example
++
++```python
++import requests
++
++API_KEY = "..."  # loaded from environment, not hardcoded — see API Keys tutorial
++
++def get_weather(city: str) -> dict | None:
++    try:
++        response = requests.get(
++            "https://api.weatherapi.com/v1/current.json",
++            params={"key": API_KEY, "q": city}
++        )
++        response.raise_for_status()
++        return response.json()
++    except requests.exceptions.RequestException as e:
++        print(f"Failed to fetch weather: {e}")
++        return None
++
++result = get_weather("Yogyakarta")
++if result:
++    print(result["current"]["temp_c"])
++```
++
++## Quick reference
++
++| I want to... | Code |
++|---|---|
++| Simple GET | `requests.get(url)` |
++| GET with query params | `requests.get(url, params={...})` |
++| POST with JSON body | `requests.post(url, json={...})` |
++| Add auth header | `requests.get(url, headers={"Authorization": "Bearer ..."})` |
++| Parse response as JSON | `response.json()` |
++| Raise on error status | `response.raise_for_status()` |
+diff --git a/content/working-with-apis/index.md b/content/working-with-apis/index.md
+new file mode 100644
+index 0000000..b3ec0b5
+--- /dev/null
++++ b/content/working-with-apis/index.md
+@@ -0,0 +1,19 @@
++---
++title: "Working with APIs"
++category: "Concepts"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# Working with APIs
++
++APIs let your code talk to other services over the internet — weather data, school systems, third-party tools, or an API you build yourself for a club project. This section covers the concept once, since it applies the same way regardless of which language you're using, followed by language-specific tutorials for actually writing the code.
++
++## What's in this section
++
++- **What is an API?** — the client/server request-response cycle, HTTP methods, JSON, and status codes.
++- **Calling APIs in Python** — using the `requests` library.
++- **Calling APIs in JavaScript** — using built-in `fetch`.
++- **API Keys and Secrets** — how to handle credentials safely, especially important since this project's repo is public on GitHub.
++
++Start with "What is an API?" if you haven't worked with one before — the language-specific pages assume you already know the concepts it covers.
+diff --git a/content/working-with-apis/what-is-an-api.md b/content/working-with-apis/what-is-an-api.md
+new file mode 100644
+index 0000000..fd21795
+--- /dev/null
++++ b/content/working-with-apis/what-is-an-api.md
+@@ -0,0 +1,63 @@
++---
++title: "What is an API?"
++category: "Concepts"
++difficulty: "beginner"
++updatedAt: "2026-09-08"
++---
++
++# What is an API?
++
++An **API** (Application Programming Interface) is a defined way for one program to ask another program for data or to trigger an action. On the web, this almost always means: your code (the **client**) sends a request over the internet to someone else's server, and gets a response back.
++
++## The client/server request-response cycle
++
++1. Your code sends a **request** to a URL, specifying what you want.
++2. The **server** processes it — looks something up, saves something, runs some logic.
++3. The server sends back a **response**, usually as JSON.
++
++This is the same pattern whether you're calling a weather API, a payment API, or your own school's data — only the specifics change.
++
++## HTTP methods — what kind of request
++
++| Method | Meaning | Example |
++|---|---|---|
++| `GET` | Retrieve data | Fetch a list of upcoming events |
++| `POST` | Create something new | Submit a new attendance record |
++| `PUT` / `PATCH` | Update existing data | Edit a member's profile |
++| `DELETE` | Remove data | Delete a cancelled event |
++
++Most beginner projects only need `GET` and `POST`.
++
++## JSON — the format almost everything speaks
++
++APIs almost universally send data as **JSON** (JavaScript Object Notation) — plain text structured as nested key-value pairs:
++
++```json
++{
++  "name": "World Engineering Day",
++  "date": "2027-03-04",
++  "attendees": 120
++}
++```
++Every mainstream language — Python, JavaScript, and beyond — has built-in or trivial JSON parsing, which is exactly why it became the standard.
++
++## Status codes — how you know what happened
++
++The response includes a numeric **status code** telling you the outcome:
++
++| Code range | Meaning |
++|---|---|
++| `200–299` | Success |
++| `300–399` | Redirect |
++| `400–499` | Client error (you asked wrong — bad request, not found, unauthorized) |
++| `500–599` | Server error (something broke on their end) |
++
++Checking the status code before trusting the response body is a habit worth building early — a failed request often still returns *something*, just not what you expected.
++
++## Authentication
++
++Many APIs require proof of who's asking, usually an **API key** — a secret string included with your request. See "API Keys and Secrets" in this section for how to handle these safely, especially in a public GitHub repo like this project's.
++
++## Where to go next
++
++This page covers the concept; the language-specific tutorials in this section ("Calling APIs in Python" and "Calling APIs in JavaScript") show the actual code for making these requests.
+diff --git a/what-is-git.md b/what-is-git.md
+deleted file mode 100644
+index 6bc74b5..0000000
+--- a/what-is-git.md
++++ /dev/null
+@@ -1,80 +0,0 @@
+----
+-title: "What is Git?"
+-category: "Tools"
+-difficulty: "beginner"
+-updatedAt: "2026-09-07"
+----
+-
+-# What is Git?
+-
+-Git is a **version control system** — it tracks changes to files over time, so you can see history, undo mistakes, and let multiple people work on the same project without overwriting each other's work.
+-
+-**GitHub** is a separate thing: a website that hosts Git repositories online. Git is the tool; GitHub is where you can store and share the result. This distinction trips people up constantly — Git works fine with no internet connection at all; GitHub is just the most common remote host for it.
+-
+-This matters directly for this tutorial site: every content update happens by committing a markdown file change and pushing it to GitHub, which triggers a rebuild.
+-
+-## Core concepts
+-
+-- **Repository (repo)** — a project folder that Git is tracking.
+-- **Commit** — a saved snapshot of changes, with a message describing what changed.
+-- **Branch** — an independent line of work, so you can experiment without touching the main codebase.
+-- **Push / Pull** — sending your commits to GitHub (`push`) or fetching others' commits down to your machine (`pull`).
+-- **Clone** — downloading a copy of an existing repo to your machine.
+-
+-## Getting set up
+-
+-1. Install Git from [git-scm.com](https://git-scm.com/downloads).
+-2. Verify: `git --version`
+-3. Set your identity (used in every commit you make):
+-```bash
+-git config --global user.name "Your Name"
+-git config --global user.email "you@example.com"
+-```
+-
+-## The commands you'll actually use daily
+-
+-```bash
+-# Get a copy of an existing repo
+-git clone https://github.com/your-org/your-repo.git
+-
+-# Check what's changed
+-git status
+-
+-# Stage changes (mark them to be included in the next commit)
+-git add wiring-guide.md
+-git add .              # stage everything changed
+-
+-# Commit staged changes with a message
+-git commit -m "Add Python syntax basics guide"
+-
+-# Send commits to GitHub
+-git push
+-
+-# Get the latest changes from GitHub
+-git pull
+-```
+-
+-## A typical workflow for updating this site
+-
+-```bash
+-git pull                                  # make sure you're up to date
+-# edit or add a .md file in /content
+-git add content/python-fundamentals/syntax-basics.md
+-git commit -m "Add syntax basics section to Python guide"
+-git push                                  # triggers a rebuild on the live site
+-```
+-
+-## Branches, briefly
+-
+-For anything bigger than a quick fix, work on a branch instead of committing straight to `main`:
+-
+-```bash
+-git checkout -b add-git-tutorial   # create and switch to a new branch
+-# make your changes, add, commit as above
+-git push -u origin add-git-tutorial
+-```
+-Then open a **pull request** on GitHub to merge it into `main` once it's reviewed.
+-
+-## Common gotcha
+-
+-`git add` and `git commit` only affect your local machine. Nothing reaches GitHub — and nothing shows up on the live site — until you run `git push`.
+diff --git a/what-is-python.md b/what-is-python.md
+deleted file mode 100644
+index 89ff281..0000000
+--- a/what-is-python.md
++++ /dev/null
+@@ -1,77 +0,0 @@
+----
+-title: "What is Python?"
+-category: "Languages"
+-difficulty: "beginner"
+-updatedAt: "2026-09-07"
+----
+-
+-# What is Python?
+-
+-Python is a general-purpose programming language known for readable syntax and a huge ecosystem of libraries. It's one of the easiest languages to start with because the code reads almost like plain English.
+-
+-```python
+-name = "Ingenium"
+-print(f"Hello, {name}!")
+-```
+-
+-## Why it matters for engineering projects
+-
+-Python shows up constantly in practical club work:
+-
+-- **Data processing** — parsing logs, cleaning CSV exports, or crunching numbers for a report is faster in Python than almost anything else.
+-- **Scripting and automation** — small scripts to rename files, scrape data, or batch-process results save huge amounts of manual work.
+-- **Automation** — quick scripts to rename files, scrape data, or batch-process images.
+-- **AI/ML** — nearly every machine learning library (PyTorch, TensorFlow, scikit-learn) is Python-first.
+-
+-## Getting set up
+-
+-1. Install Python from [python.org](https://www.python.org/downloads/) (check "Add to PATH" on Windows).
+-2. Verify it worked: open a terminal and run `python --version` (or `python3 --version` on macOS/Linux).
+-3. Write a file, e.g. `hello.py`, and run it with `python hello.py`.
+-
+-## Core syntax you'll actually use
+-
+-```python
+-# Variables — no type declaration needed
+-count = 5
+-label = "sensors"
+-
+-# Conditionals
+-if count > 3:
+-    print("Above threshold")
+-else:
+-    print("Below threshold")
+-
+-# Loops
+-for i in range(count):
+-    print(i)
+-
+-# Functions
+-def add(a, b):
+-    return a + b
+-
+-# Lists and dictionaries
+-sensors = ["temp", "humidity", "light"]
+-config = {"pin": 4, "interval_ms": 500}
+-```
+-
+-## Installing libraries
+-
+-Python's package manager is `pip`, bundled with Python itself:
+-
+-```bash
+-pip install requests
+-```
+-
+-For anything beyond a quick script, use a **virtual environment** so project dependencies don't collide with each other:
+-
+-```bash
+-python -m venv venv
+-source venv/bin/activate      # macOS/Linux
+-venv\Scripts\activate         # Windows
+-pip install requests
+-```
+-
+-## Where to go next
+-
+-Once comfortable with the basics above, the most useful next steps for club projects are: reading/writing files, working with APIs (`requests` library), and — if working on hardware — looking into MicroPython for board-level scripting.
