@@ -3,6 +3,7 @@ import path from 'path';
 import matter from 'gray-matter';
 import { remark } from 'remark';
 import remarkRehype from 'remark-rehype';
+import remarkGfm from 'remark-gfm';
 import rehypeStringify from 'rehype-stringify';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
@@ -171,6 +172,7 @@ export async function getMarkdownContent(slugParts: string[]): Promise<{ frontma
     const { data, content } = matter(fileContent);
 
     const processedContent = await remark()
+      .use(remarkGfm)
       .use(remarkRehype)
       .use(rehypeSlug)
       .use(rehypeAutolinkHeadings, {
