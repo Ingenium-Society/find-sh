@@ -12,7 +12,7 @@ export default function Home() {
         </p>
         <div className="flex gap-4">
           <Link
-            href="/tutorials/what-is-git"
+            href="/tutorials/what-is-python"
             className="rounded-full bg-foreground text-background px-6 py-3 font-medium hover:opacity-90 transition-opacity"
           >
             Browse Tutorials
