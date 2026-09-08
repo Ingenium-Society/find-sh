@@ -139,17 +139,25 @@ export function getAllSlugs(): string[][] {
  * reads and parses the corresponding .md file into { frontmatter, htmlContent }.
  */
 export async function getMarkdownContent(slugParts: string[]): Promise<{ frontmatter: Frontmatter; htmlContent: string } | null> {
-  if (!slugParts || slugParts.length === 0) return null;
+  if (slugParts && slugParts.length === 1 && slugParts[0] === 'index') {
+    slugParts = [];
+  }
 
-  let filePath = path.join(CONTENT_DIR, ...slugParts) + '.md';
+  let filePath: string;
+  if (!slugParts || slugParts.length === 0) {
+    filePath = path.join(CONTENT_DIR, 'index.md');
+    if (!fs.existsSync(/*turbopackIgnore: true*/ filePath)) return null;
+  } else {
+    filePath = path.join(CONTENT_DIR, ...slugParts) + '.md';
 
-  // If path doesn't exist as a file, check if it's a folder with an index.md
-  if (!fs.existsSync(/*turbopackIgnore: true*/ filePath)) {
-    const indexPath = path.join(CONTENT_DIR, ...slugParts, 'index.md');
-    if (fs.existsSync(/*turbopackIgnore: true*/ indexPath)) {
-      filePath = indexPath;
-    } else {
-      return null;
+    // If path doesn't exist as a file, check if it's a folder with an index.md
+    if (!fs.existsSync(/*turbopackIgnore: true*/ filePath)) {
+      const indexPath = path.join(CONTENT_DIR, ...slugParts, 'index.md');
+      if (fs.existsSync(/*turbopackIgnore: true*/ indexPath)) {
+        filePath = indexPath;
+      } else {
+        return null;
+      }
     }
   }
 
