@@ -1,0 +1,295 @@
+---
+title: "Control Flow"
+category: "Python"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 4
+---
+
+# Control Flow
+
+Two things: making decisions, and repeating work. That's all control flow is.
+
+## Indentation is syntax
+
+Before anything else — in Python, indentation is not cosmetic. It defines which lines belong together.
+
+```python
+if score > 90:
+    print("Excellent")
+    print("Well done")
+print("Done")
+```
+
+The two indented lines run only when the condition is true. The last line always runs.
+
+```python
+if score > 90:
+print("Excellent")
+```
+
+```
+IndentationError: expected an indented block
+```
+
+<Callout variant="warning" title="Use 4 spaces, and let your editor do it">
+
+Python doesn't care whether you use tabs or spaces — but it cares that you're consistent. Mixing them produces confusing `IndentationError` or `TabError` messages.
+
+Every editor handles this automatically when you press <kbd>Tab</kbd> after a colon. Use 4 spaces, which is the convention in every Python codebase you'll read.
+
+</Callout>
+
+## Making decisions
+
+```python
+score = 85
+
+if score >= 90:
+    grade = "A"
+elif score >= 80:
+    grade = "B"
+elif score >= 70:
+    grade = "C"
+else:
+    grade = "F"
+
+print(grade)          # B
+```
+
+`elif` means "else if" — checked only when everything above it was false. Python evaluates top to bottom and stops at the first match, so **order matters**:
+
+```python
+if score >= 70:
+    grade = "C"
+elif score >= 90:      # never reached when score is 95
+    grade = "A"
+```
+
+Here a score of 95 matches the first condition and never reaches the second. Put the most specific conditions first.
+
+### Comparison operators
+
+| Operator | Means |
+|---|---|
+| `==` | equal to |
+| `!=` | not equal to |
+| `>` `<` | greater / less than |
+| `>=` `<=` | greater-or-equal / less-or-equal |
+
+<Callout variant="danger" title="= is not ==">
+
+`=` assigns. `==` compares.
+
+```python
+if score = 90:      # SyntaxError
+if score == 90:     # correct
+```
+
+Python actually catches this one for you with a `SyntaxError`. Some other languages silently assign and always evaluate as true — so the habit is worth building regardless.
+
+</Callout>
+
+### Combining conditions
+
+```python
+if age >= 13 and age <= 19:
+    print("Teenager")
+
+if day == "Saturday" or day == "Sunday":
+    print("Weekend")
+
+if not is_active:
+    print("Inactive")
+
+if 13 <= age <= 19:          # Python allows chaining
+    print("Teenager")
+```
+
+`and` requires both sides true. `or` requires at least one. `not` flips.
+
+`in` checks membership, which reads much better than a chain of `or`s:
+
+```python
+if day in ["Saturday", "Sunday"]:
+    print("Weekend")
+
+if "error" in log_line:
+    print("Something failed")
+```
+
+## Repeating work
+
+### `for` — when you know what you're iterating over
+
+```python
+for name in names:
+    print(name)
+
+for char in "hello":
+    print(char)
+
+for student in students:
+    print(student["name"])
+```
+
+### `range()` — when you need numbers
+
+```python
+for i in range(5):
+    print(i)              # 0, 1, 2, 3, 4
+
+for i in range(1, 4):
+    print(i)              # 1, 2, 3
+
+for i in range(0, 10, 2):
+    print(i)              # 0, 2, 4, 6, 8
+```
+
+`range(5)` starts at 0 and stops **before** 5. Same "up to but not including" rule as list slicing — Python is consistent about this.
+
+### `while` — when you don't know how many times
+
+```python
+attempts = 0
+
+while attempts < 3:
+    attempts += 1
+    print(f"Attempt {attempts}")
+```
+
+<Callout variant="danger" title="while loops can run forever">
+
+If the condition never becomes false, the loop never stops. Your terminal hangs and nothing prints.
+
+<kbd>Ctrl</kbd> + <kbd>C</kbd> gets you out.
+
+The usual cause is forgetting to update the variable the condition depends on — note the `attempts += 1` above. Remove that line and the loop is infinite.
+
+If you reach for `while`, ask yourself whether `for` would do. It usually would, and `for` can't hang.
+
+</Callout>
+
+### `break` and `continue`
+
+```python
+for name in names:
+    if name == "Alan":
+        break          # stop the loop entirely
+    print(name)
+```
+
+```python
+for name in names:
+    if name.startswith("A"):
+        continue       # skip to the next item
+    print(name)
+```
+
+`break` exits. `continue` skips the rest of this iteration and moves on.
+
+## Comprehensions
+
+A compact way to build a list from another list. Once it clicks, you'll use it constantly.
+
+```python
+numbers = [1, 2, 3, 4, 5]
+
+doubled = [n * 2 for n in numbers]
+# [2, 4, 6, 8, 10]
+
+evens = [n for n in numbers if n % 2 == 0]
+# [2, 4]
+
+names = [s["name"] for s in students]
+# ['Ada', 'Grace', 'Alan']
+```
+
+Read it as: *"give me `n * 2`, for each `n` in `numbers`."* With the `if`, add: *"but only when `n % 2 == 0`."*
+
+The equivalent loop is longer and no clearer:
+
+```python
+doubled = []
+for n in numbers:
+    doubled.append(n * 2)
+```
+
+Both are correct. The comprehension is more common in real Python code, so it's worth being able to read.
+
+<Callout variant="warning" title="Don't nest them">
+
+One `for` and one `if` is readable. Two `for`s is a puzzle.
+
+If a comprehension needs more than that, write the loop. Clarity beats cleverness, and you'll be the one reading it in six months.
+
+</Callout>
+
+<CheckYourself question="What does [n * 2 for n in range(3)] produce? Then: how would you get only the numbers greater than 5 from a list called values?">
+
+`[0, 2, 4]`.
+
+`range(3)` gives `0, 1, 2`. Each is multiplied by 2. Nothing is printed — a comprehension *builds a list*, it doesn't display anything.
+
+For the second:
+
+```python
+[n for n in values if n > 5]
+```
+
+Note the `if` goes at the **end**, after the loop. Writing it before the `for` is a syntax error — a very common one when you're learning the form.
+
+</CheckYourself>
+
+## Putting it together
+
+```python
+students = [
+    {"name": "Ada", "score": 91},
+    {"name": "Grace", "score": 72},
+    {"name": "Alan", "score": 95},
+]
+
+passed = [s["name"] for s in students if s["score"] >= 80]
+
+for name in passed:
+    print(f"{name} passed")
+
+print(f"{len(passed)} of {len(students)} passed")
+```
+
+```bash
+uv run python report.py
+```
+
+```
+Ada passed
+Alan passed
+2 of 3 passed
+```
+
+That's a filter, a loop, and a summary — the shape of most scripts you'll write.
+
+## Quick reference
+
+| I want to... | Code |
+|---|---|
+| Conditional | `if x > 5:` |
+| Else-if | `elif x > 3:` |
+| Otherwise | `else:` |
+| Both conditions | `if a and b:` |
+| Either condition | `if a or b:` |
+| Negate | `if not x:` |
+| Membership | `if x in items:` |
+| Chain comparison | `if 13 <= age <= 19:` |
+| Loop over items | `for x in items:` |
+| Loop with index | `for i, x in enumerate(items):` |
+| Loop over numbers | `for i in range(5):` |
+| Exit a loop | `break` |
+| Skip an iteration | `continue` |
+| Build a list | `[f(x) for x in items]` |
+| Build a filtered list | `[x for x in items if cond]` |
+
+## Next
+
+**[Functions](/tutorials/python/functions)** — naming a block of code so you can use it more than once.

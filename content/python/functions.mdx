@@ -1,0 +1,236 @@
+---
+title: "Functions"
+category: "Python"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 5
+---
+
+# Functions
+
+A function is a named block of code you can run whenever you want, with different inputs.
+
+They exist for one reason: so you don't write the same thing twice.
+
+## Defining and calling
+
+```python
+def greet(name):
+    return f"Hello, {name}!"
+
+
+message = greet("Ingenium")
+print(message)
+```
+
+```
+Hello, Ingenium!
+```
+
+Three parts:
+
+| Part | Meaning |
+|---|---|
+| `def greet(name):` | define a function called `greet` that takes one input |
+| `name` | a **parameter** — a placeholder for the value |
+| `return` | hands the result back to whoever called it |
+
+`greet("Ingenium")` is a **call**. `"Ingenium"` is the **argument** — the actual value. The distinction between parameter and argument is minor, but you'll see both words.
+
+The body is indented, same rule as `if` and `for`.
+
+## `return` is not `print`
+
+This is the mistake that causes the most confusion for beginners.
+
+```python
+def add_bad(a, b):
+    print(a + b)
+
+
+def add_good(a, b):
+    return a + b
+```
+
+```python
+result = add_bad(2, 3)
+# prints 5, but result is None
+
+result = add_good(2, 3)
+# prints nothing, but result is 5
+```
+
+`print` **displays** a value and throws it away. `return` **hands it back** so the caller can use it.
+
+<Callout variant="danger" title="If a function returns None, look for print">
+
+The symptom: your function appears to work — you can see the right output on screen — but `result` is `None` and everything downstream breaks with `TypeError: unsupported operand type(s) for +: 'NoneType' and 'int'`.
+
+The cause is almost always `print` where you meant `return`.
+
+Use `print` when the *user* needs to see something. Use `return` when *your code* needs the value.
+
+</Callout>
+
+<CheckYourself question="A function prints the correct total, but assigning its result to a variable gives None. What's wrong?">
+
+The function uses `print(...)` instead of `return ...`.
+
+`print` writes to the screen and returns `None` — always. So the function's value *is* `None`, no matter how correct the output looks.
+
+Change `print(total)` to `return total`. If you also want it displayed, do that at the call site:
+
+```python
+result = calculate()
+print(result)
+```
+
+</CheckYourself>
+
+## Parameters
+
+```python
+def greet(name, greeting="Hello"):
+    return f"{greeting}, {name}!"
+
+
+greet("Ada")                        # 'Hello, Ada!'
+greet("Ada", "Hi")                  # 'Hi, Ada!'
+greet("Ada", greeting="Hi")         # same, but explicit
+greet(greeting="Hi", name="Ada")    # keyword arguments — order doesn't matter
+```
+
+`greeting="Hello"` is a **default**. If the caller doesn't supply it, that value is used.
+
+<Callout variant="warning" title="Defaults are evaluated once, at definition">
+
+For simple values like strings and numbers this never bites you. For mutable defaults — lists, dicts — it does:
+
+```python
+def add_item(item, bucket=[]):      # the SAME list every call
+    bucket.append(item)
+    return bucket
+```
+
+Call it twice and the second call sees the first call's item. The fix is `bucket=None` and create the list inside.
+
+Worth knowing now so you recognise it later. It's a classic Python trap.
+
+</Callout>
+
+## Returning more than one thing
+
+```python
+def min_max(numbers):
+    return min(numbers), max(numbers)
+
+
+low, high = min_max([3, 1, 4, 1, 5])
+print(low, high)          # 1 5
+```
+
+Python actually returns a **tuple** here, and the assignment unpacks it. You don't need to do anything special.
+
+## Scope
+
+Variables created inside a function exist only inside it:
+
+```python
+def calculate():
+    total = 42          # local
+    return total
+
+
+calculate()
+print(total)            # NameError: name 'total' is not defined
+```
+
+<Callout variant="tip" title="This is a feature, not an obstacle">
+
+It means you can use `total` in five different functions without them interfering.
+
+The alternative — everything sharing one global namespace — is how you get bugs where changing one function breaks another three files away.
+
+**Rule of thumb:** pass values in as arguments, get them back via `return`. Avoid reaching outside the function for data. When a function only depends on its arguments, it's easy to test and easy to trust.
+
+</Callout>
+
+## Type hints
+
+Optional, and worth using:
+
+```python
+def summarise(names: list[str]) -> str:
+    return f"{len(names)} names"
+```
+
+`names: list[str]` says the parameter should be a list of strings. `-> str` says the function returns a string.
+
+<Callout variant="note" title="Hints are documentation, not enforcement">
+
+Python does **not** check them at runtime. `summarise(42)` runs and fails somewhere inside, not at the call.
+
+They're for you, your editor, and anyone reading the code. Your editor will warn you before you run anything, which is the main benefit.
+
+</Callout>
+
+## Docstrings
+
+A string as the first line of a function describes what it does:
+
+```python
+def summarise(names: list[str]) -> str:
+    """Return a one-line summary of the given names."""
+    return f"{len(names)} names"
+```
+
+It shows up in help and in editor tooltips. One line is usually enough.
+
+## Small functions are the point
+
+```python
+def load_students(path):
+    ...
+
+
+def average_score(students):
+    ...
+
+
+def format_report(students):
+    ...
+```
+
+Compare that to one 80-line block that reads a file, computes, and prints. The functions version is:
+
+- **Readable** — each name says what it does
+- **Testable** — you can call `average_score` with fake data
+- **Reusable** — `format_report` works for any list of students
+- **Debuggable** — when output is wrong, you know which step to inspect
+
+<Callout variant="tip" title="If you can't name it, it's doing too much">
+
+A function named `process_data` is a warning sign. `load_csv`, `clean_rows`, `compute_totals` — those names tell you what's happening.
+
+The naming difficulty is the design feedback. When you can't find a short honest name, the function has more than one job.
+
+</Callout>
+
+## Quick reference
+
+| I want to... | Code |
+|---|---|
+| Define | `def name(param):` |
+| Return a value | `return value` |
+| Return nothing | `return` (or omit) |
+| Default value | `def f(x, y=10):` |
+| Call with keywords | `f(y=5, x=1)` |
+| Several returns | `return a, b` |
+| Unpack them | `x, y = f()` |
+| Type hints | `def f(x: int) -> str:` |
+| Docstring | `"""What it does."""` |
+| Anonymous function | `lambda x: x * 2` |
+
+## Next
+
+**[Files and JSON](/tutorials/python/files-and-json)** — reading and writing real data.

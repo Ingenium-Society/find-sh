@@ -1,0 +1,184 @@
+---
+title: "Navigating the Filesystem"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# Navigating the Filesystem
+
+Three commands cover 90% of movement: `pwd` tells you where you are, `ls` tells you what's there, `cd` moves you.
+
+Play with them before reading the rest. Nothing here creates or deletes anything — `cd` only changes where you are standing.
+
+<FileSystemExplorer />
+
+<Callout variant="tip" title="Watch the tree, not the output">
+
+The important thing to notice: **the directory never changes.** No files appear or disappear.
+
+`cd` does not move anything on disk. It changes which folder your commands act on — like turning your head, not rearranging the room.
+
+</Callout>
+
+## Where am I?
+
+```bash
+pwd
+```
+
+```
+/Users/haidaralifawwaz/Documents/find-sh
+```
+
+`pwd` = **p**rint **w**orking **d**irectory. The absolute path of the folder you're standing in.
+
+Run this whenever you're confused. Half of all terminal errors are "I was in the wrong folder."
+
+## What's here?
+
+```bash
+ls
+```
+
+```
+content  node_modules  package.json  public  src
+```
+
+Add `-l` for details (permissions, owner, size, modified date) and `-a` to include hidden files:
+
+```bash
+ls -la
+```
+
+```
+drwxr-xr-x   8 haidaralifawwaz  staff   256 Sep 21 09:14 .
+drwxr-xr-x  12 haidaralifawwaz  staff   384 Sep 20 18:02 ..
+-rw-r--r--   1 haidaralifawwaz  staff  1234 Sep 21 08:56 package.json
+```
+
+The `.` and `..` entries at the top aren't clutter — they're real, and you'll use them in a second.
+
+You can combine flags: `ls -la` is `-l` and `-a` together. Flag order rarely matters.
+
+## Moving around
+
+```bash
+cd src
+```
+
+`cd` = **c**hange **d**irectory. This moves you into `src`, assuming a folder by that name exists in your current directory. If it doesn't:
+
+```
+cd: no such file or directory: src
+```
+
+That error means one of two things: you typo'd it, or you're not where you think you are. Run `pwd` and `ls` to find out which.
+
+Going back up:
+
+```bash
+cd ..
+```
+
+`..` always means "the folder containing this one." Chain it to go up multiple levels:
+
+```bash
+cd ../..
+```
+
+Going home, from anywhere:
+
+```bash
+cd ~
+```
+
+`~` is shorthand for your home directory — `/Users/haidaralifawwaz` on macOS, `/home/you` on Linux. It works from any location, which makes it the reliable escape hatch when you're lost.
+
+<CheckYourself question="You're deep inside a project folder, completely lost, and you want to start over from your home directory. What do you type — and why does it work from anywhere?">
+
+`cd ~`
+
+The `~` character is expanded by the shell into your home directory's full path before the command even runs. So it doesn't matter where you currently are — `cd ~` always resolves to the same absolute location.
+
+That's the difference between `~` and a relative path like `cd projects`: `projects` is looked up inside your current folder, so it only works if you happen to be in the right place.
+
+</CheckYourself>
+
+## Absolute vs relative paths
+
+This distinction causes more confusion than anything else in this section.
+
+| Type | Starts with | Example | Meaning |
+|---|---|---|---|
+| **Absolute** | `/` or `~` | `/Users/haidar/notes.txt` | Same file from anywhere |
+| **Relative** | anything else | `notes.txt` | Depends on where you are |
+
+```bash
+cd /Users/haidaralifawwaz/Documents   # absolute — always this folder
+cd Documents                          # relative — a folder called "Documents" inside wherever I am now
+```
+
+The practical rule: **use absolute paths when scripting or when you've been lost for more than a minute.** Use relative paths for quick interactive work.
+
+<Callout variant="warning" title="The same relative command can do two different things">
+
+If you're in `/Users/you` and type `cd projects`, you go to `/Users/you/projects`.
+
+If you're in `/Users/you/Documents` and type the same thing, you go to `/Users/you/Documents/projects` — or get an error, if that folder doesn't exist.
+
+The command didn't change. Your position did. This is why "it worked a minute ago" happens, and why `pwd` is the first thing to check.
+
+</Callout>
+
+## The single best time-saver: tab completion
+
+Start typing a name and press <kbd>Tab</kbd>. The shell finishes it for you.
+
+```bash
+cd doc<Tab>
+```
+
+becomes
+
+```bash
+cd Documents/
+```
+
+If it doesn't complete, there's either no match or more than one. Press <kbd>Tab</kbd> twice to see all the options.
+
+Use this constantly. It eliminates typos entirely — and typos in file paths are the second most common source of errors after "wrong folder."
+
+## Paths with spaces
+
+A path with a space in it breaks, because the shell reads the space as "next argument":
+
+```bash
+cd My Projects        # tries to enter "My", then pass "Projects" as an argument
+```
+
+Escape it with a backslash, or quote the whole thing:
+
+<CommandTabs
+  label="Two ways to handle a path with spaces"
+  mac="cd My\ Projects&#10;cd &quot;My Projects&quot;"
+  linux="cd My\ Projects&#10;cd &quot;My Projects&quot;"
+  windows="cd 'My Projects'&#10;cd &quot;My Projects&quot;"
+/>
+
+Quoting is easier to read and easier to remember.
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Where am I | `pwd` |
+| What's here | `ls` |
+| What's here, including hidden | `ls -la` |
+| Go into a folder | `cd foldername` |
+| Go up one level | `cd ..` |
+| Go home | `cd ~` |
+| Go back to the previous folder | `cd -` |
+| Autocomplete a name | <kbd>Tab</kbd> |
+| See all matches | <kbd>Tab</kbd> <kbd>Tab</kbd> |

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getAllSlugs, getMarkdownContent } from '@/lib/content';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
+import ContentRenderer from '@/components/ContentRenderer';
 
 interface PageProps {
   params: Promise<{
@@ -24,7 +24,7 @@ export default async function TutorialPage({ params }: PageProps) {
     notFound();
   }
 
-  const { frontmatter, htmlContent } = result;
+  const { frontmatter } = result;
 
   return (
     <div className="space-y-6">
@@ -48,7 +48,7 @@ export default async function TutorialPage({ params }: PageProps) {
           {frontmatter.title}
         </h1>
       </div>
-      <MarkdownRenderer html={htmlContent} />
+      <ContentRenderer result={result} />
     </div>
   );
 }

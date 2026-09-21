@@ -1,0 +1,193 @@
+---
+title: "Node and node_modules"
+category: "Environments"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 4
+---
+
+# Node and node_modules
+
+JavaScript solves the isolation problem by removing the choice. Every Node project has its own `node_modules` folder, and there is no global alternative to opt into.
+
+This is the one place where the JavaScript ecosystem is easier than Python, and it's worth understanding why.
+
+## The folder that surprises everyone
+
+```bash
+npm install express
+```
+
+```
+added 64 packages in 2s
+```
+
+You asked for one package and got 64 folders:
+
+```bash
+ls node_modules | wc -l
+```
+
+```
+64
+```
+
+That's not a bug. `express` depends on other packages, which depend on others. npm installs the whole tree, locally, into your project.
+
+`node_modules` is frequently the largest folder in a JavaScript project — hundreds of megabytes is normal, and some projects exceed a gigabyte.
+
+<Callout variant="danger" title="Never commit node_modules">
+
+It's regenerated from `package.json` in seconds, and committing it means pushing tens of thousands of files that nobody will read.
+
+Add it to `.gitignore` before your first commit:
+
+```gitignore
+node_modules/
+```
+
+</Callout>
+
+## Local vs global
+
+Most `npm install` commands are local — the package goes into `./node_modules` and only this project can use it.
+
+```bash
+npm install express          # local: goes in node_modules/
+npm install --save-dev jest  # local, dev-only
+```
+
+Global installs exist but are rarely what you want:
+
+```bash
+npm install -g some-cli      # global: available from anywhere
+```
+
+<Callout variant="note" title="Use -g only for command-line tools">
+
+Things like `vercel` or `typescript` that you run by name from any folder.
+
+Never use `-g` for libraries your code imports — a globally-installed library isn't visible to `require()` or `import` anyway, which confuses people who try it.
+
+If a tool is only needed in one project, `npx` runs it without installing globally at all:
+
+```bash
+npx create-next-app my-app
+```
+
+`npx` fetches the package, runs it, and throws it away.
+
+</Callout>
+
+## Why this design is actually good
+
+Because isolation is mandatory, the "works on my machine" problem is much rarer in JavaScript than in Python.
+
+There is no global `node_modules` to accidentally poison. Every project's dependencies are physically inside the project. Two projects can use different versions of the same package and never interact.
+
+The cost is disk space and install time. The benefit is that a cloned repo behaves predictably.
+
+## What a Node environment looks like
+
+```
+my-project/
+├── node_modules/       # installed packages — git-ignored, regenerable
+├── package.json        # what this project needs — committed
+├── package-lock.json   # exact versions installed — committed
+└── src/
+```
+
+Three things to internalise:
+
+| File/folder | Commit? | Why |
+|---|---|---|
+| `node_modules/` | **No** | huge, regenerable, platform-specific |
+| `package.json` | **Yes** | the project's declared dependencies |
+| `package-lock.json` | **Yes** | the exact version tree that worked |
+
+<Callout variant="warning" title="The lockfile is the one people wrongly ignore">
+
+`package.json` says "express version 5 or later." `package-lock.json` says "express 5.2.1, and these exact 63 others."
+
+Without the lockfile, two people installing the same `package.json` can get different code — and one of them breaks.
+
+</Callout>
+
+## Setting up a cloned project
+
+This is the sequence you'll run constantly:
+
+```bash
+git clone https://github.com/some/project.git
+cd project
+npm install
+```
+
+`npm install` reads `package.json` and the lockfile and reconstructs `node_modules` exactly.
+
+On CI, or when you want the lockfile honoured precisely:
+
+```bash
+npm ci
+```
+
+`npm ci` deletes `node_modules` and installs strictly from the lockfile. It's faster and stricter than `npm install`, which is allowed to update the lockfile when things don't match. Use `npm ci` in automation, `npm install` while developing.
+
+<CheckYourself question="A teammate clones your project and runs npm install. You both have the same package.json. Can you end up with different code?">
+
+Not if `package-lock.json` was committed — that's exactly what it's for. `npm install` reads it and installs the same version tree you have.
+
+Yes, if the lockfile was git-ignored. Then `npm install` resolves `package.json`'s ranges fresh, and if any dependency published a release since you last installed, they get different code than you. Their build can fail while yours works.
+
+This is why `package-lock.json` is committed even though it looks like generated noise.
+
+</CheckYourself>
+
+## Node versions
+
+Node itself has versions, and projects often require a specific one. Two mechanisms:
+
+```
+# .nvmrc
+20.11.0
+```
+
+```
+// package.json
+"engines": { "node": ">=20" }
+```
+
+Check yours:
+
+```bash
+node --version
+```
+
+Switch versions with `nvm` or `fnm`:
+
+<CommandTabs
+  label="Switch Node versions"
+  mac="# with nvm&#10;nvm install 20&#10;nvm use 20"
+  linux="# with nvm&#10;nvm install 20&#10;nvm use 20"
+  windows="# with fnm on Windows&#10;fnm install 20&#10;fnm use 20"
+/>
+
+[Volta](https://volta.sh) and `fnm` both do the same job well, and can pin a version per project automatically.
+
+## The parallel to Python
+
+| | Python | JavaScript |
+|---|---|---|
+| Environment folder | `.venv/` | `node_modules/` |
+| Must activate | Yes | No |
+| Dependency file | `requirements.txt` / `pyproject.toml` | `package.json` |
+| Lockfile | `uv.lock` | `package-lock.json` |
+| Install command | `pip install` | `npm install` |
+| Install from file | `pip install -r requirements.txt` | `npm install` |
+| Global installs | Common and dangerous | Rare, tools only |
+
+The concepts are the same. JavaScript just made the safe option the only option.
+
+## Next
+
+**[Package Managers](/tutorials/package-managers)** — where `package.json`, `requirements.txt`, and lockfiles actually come from, and how to write them properly.

@@ -1,0 +1,255 @@
+---
+title: "Files and JSON"
+category: "Python"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 6
+---
+
+# Files and JSON
+
+This is where Python starts being useful. Reading data in, transforming it, writing it out — that's most of what a practical script does.
+
+## Reading a file
+
+```python
+with open("names.txt") as f:
+    content = f.read()
+
+print(content)
+```
+
+`f.read()` returns the whole file as one string.
+
+Line by line is usually more useful:
+
+```python
+with open("names.txt") as f:
+    for line in f:
+        print(line.strip())
+```
+
+<Callout variant="warning" title="Always use with">
+
+`with open(...) as f:` closes the file automatically, even if something inside the block fails.
+
+Without it, you have to remember to close the file yourself — and if an error happens first, you don't, and the file stays locked. On Windows that means you can't delete or overwrite it until the program exits.
+
+Use `with`. There is no reason not to.
+
+</Callout>
+
+Note the `.strip()` above. Each line from a file includes its trailing newline character, so without stripping you get blank lines when printing and comparisons that mysteriously fail:
+
+```python
+>>> line == "Ada"
+False
+>>> line.strip() == "Ada"
+True
+```
+
+## Writing a file
+
+```python
+with open("output.txt", "w") as f:
+    f.write("first line\n")
+    f.write("second line\n")
+```
+
+The mode matters:
+
+| Mode | Meaning | If the file exists |
+|---|---|---|
+| `"r"` | read | reads it |
+| `"w"` | write | **erases it** |
+| `"a"` | append | adds to the end |
+
+<Callout variant="danger" title="&quot;w&quot; erases the file silently">
+
+There's no confirmation and no undo. `open("important.txt", "w")` empties the file the moment it runs.
+
+Use `"a"` to add to a file. Use `"w"` only when you genuinely want to replace the contents.
+
+</Callout>
+
+`\n` is a newline. `f.write()` does **not** add one for you — unlike `print()`.
+
+## Encoding
+
+```python
+with open("names.txt", encoding="utf-8") as f:
+    content = f.read()
+```
+
+<Callout variant="note" title="Be explicit about utf-8">
+
+Without it, Python uses your system's default encoding, which differs between macOS, Linux, and Windows.
+
+On Windows the default is often not UTF-8, so a file with accented characters or non-Latin script reads back as garbled text or raises `UnicodeDecodeError` — on a teammate's machine but not yours.
+
+Passing `encoding="utf-8"` explicitly costs nothing and removes an entire class of "works on my machine" bug.
+
+</Callout>
+
+## JSON
+
+JSON is the format APIs return and config files use. Python has it built in.
+
+```python
+import json
+
+data = {
+    "name": "Ingenium",
+    "members": 12,
+    "active": True,
+}
+
+# Python object -> JSON text
+text = json.dumps(data)
+print(text)
+
+# JSON text -> Python object
+parsed = json.loads(text)
+print(parsed["members"])       # 12
+```
+
+`dumps` and `loads` work on **strings**. `dump` and `load` work on **files**:
+
+```python
+# write
+with open("config.json", "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2)
+
+# read
+with open("config.json", encoding="utf-8") as f:
+    config = json.load(f)
+```
+
+`indent=2` makes the output readable. Without it you get one long line — fine for a machine, miserable for you.
+
+<Callout variant="tip" title="The s in dumps/loads means string">
+
+`json.dumps` → **d**ump **s**tring. `json.loads` → **l**oad **s**tring.
+
+The versions without the `s` take a file object. Mixing them up gives you a confusing `AttributeError` — you'll know immediately once you spot the pattern.
+
+</Callout>
+
+## How JSON maps to Python
+
+| JSON | Python |
+|---|---|
+| object `{}` | `dict` |
+| array `[]` | `list` |
+| string | `str` |
+| number | `int` or `float` |
+| `true` / `false` | `True` / `False` |
+| `null` | `None` |
+
+That mapping is why a list of dictionaries is the shape you keep meeting — it's the direct translation of a JSON array of objects.
+
+## CSV
+
+```python
+import csv
+
+with open("students.csv", encoding="utf-8") as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        print(row["name"], row["score"])
+```
+
+`DictReader` treats the first row as column headers and gives you a dictionary per row. That's almost always what you want — the alternative gives you plain lists and you have to remember which index was which.
+
+Writing:
+
+```python
+with open("report.csv", "w", encoding="utf-8", newline="") as f:
+    writer = csv.DictWriter(f, fieldnames=["name", "score"])
+    writer.writeheader()
+    writer.writerows(results)
+```
+
+The `newline=""` is required on Windows to stop blank rows appearing between your data. Harmless elsewhere.
+
+## A complete script
+
+```python
+import csv
+import json
+
+
+def load_students(path: str) -> list[dict]:
+    """Read students from a CSV file."""
+    with open(path, encoding="utf-8") as f:
+        return list(csv.DictReader(f))
+
+
+def summarise(students: list[dict]) -> dict:
+    """Compute summary statistics."""
+    scores = [int(s["score"]) for s in students]
+    return {
+        "count": len(scores),
+        "average": round(sum(scores) / len(scores), 1),
+        "highest": max(scores),
+        "lowest": min(scores),
+    }
+
+
+def save_report(summary: dict, path: str) -> None:
+    """Write the summary out as JSON."""
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2)
+
+
+if __name__ == "__main__":
+    students = load_students("students.csv")
+    summary = summarise(students)
+    save_report(summary, "report.json")
+    print(f"Wrote report for {summary['count']} students")
+```
+
+```bash
+uv run python report.py
+```
+
+```
+Wrote report for 12 students
+```
+
+Notice the structure: three small functions, each doing one job, with the `__main__` guard tying them together. That's the shape of a script you can come back to in six months.
+
+<CheckYourself question="You read a file line by line and compare each line to 'Ada'. It never matches, even though you can see 'Ada' in the file. What's going on?">
+
+Each line includes its trailing newline character, so the value is actually `"Ada\n"`, not `"Ada"`.
+
+Fix it with `.strip()`:
+
+```python
+for line in f:
+    if line.strip() == "Ada":
+        ...
+```
+
+This is the same class of bug as `input()` always returning a string — the data isn't quite the shape you assumed. When a comparison mysteriously fails, print `repr(value)` instead of `value` and the hidden characters become visible.
+
+</CheckYourself>
+
+## Quick reference
+
+| I want to... | Code |
+|---|---|
+| Read a whole file | `with open(p, encoding="utf-8") as f: f.read()` |
+| Read line by line | `for line in f:` |
+| Strip the newline | `line.strip()` |
+| Write a file | `open(p, "w")` |
+| Append to a file | `open(p, "a")` |
+| Parse JSON text | `json.loads(text)` |
+| Read a JSON file | `json.load(f)` |
+| Write JSON | `json.dump(data, f, indent=2)` |
+| Read CSV with headers | `csv.DictReader(f)` |
+| Write CSV | `csv.DictWriter(f, fieldnames=[...])` |
+
+## Next
+
+**[Errors and Debugging](/tutorials/python/errors-and-debugging)** — what to do when it doesn't work, which is most of the time.

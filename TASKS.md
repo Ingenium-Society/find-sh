@@ -31,7 +31,7 @@ Work through in order. Check off each item as completed. Each task should be ind
 - [x] Local `useState` per folder node for expand/collapse
 - [x] Files render as `<Link>` to their `/tutorials/...` route
 - [x] Highlight the currently active file using `usePathname()`
-- [x] Sort: folders before files, alphabetical within each group
+- [x] Sort: explicit `order` frontmatter first (ascending, missing = last), then folders before files, then alphabetical
 
 ## 6. Markdown rendering & styling
 - [x] Wrap rendered content in the Tailwind `prose` class for readable typography
@@ -42,19 +42,67 @@ Work through in order. Check off each item as completed. Each task should be ind
 - [x] Sidebar collapses into a toggleable drawer below a breakpoint (e.g. `md`)
 - [x] Verify navigation still works and active-state highlighting persists on mobile
 
-## 8. Content — initial materials
-- [x] Add `content/what-is-python.md`
-- [x] Add `content/typescript-and-javascript.md`
-- [x] Add `content/what-is-git.md`
-- [x] Add `content/what-is-vscode.md`
-- [x] Confirm all four appear correctly in the tree and render properly
+## 8. Content — foundation curriculum (v2)
+Replaced the original topic-library content on 2026-09-21. The site is now a sequenced
+curriculum built around the toolchain that real projects need, not a reference library.
+Old content is recoverable from git history (`git show 1266b4e -- content/`).
 
-## 9. Stretch goals (do not start until 1–8 are done)
+- [x] Remove all v1 content (37 files)
+- [x] `content/terminal-basics/` — 6 pages + index
+- [x] `content/virtual-environments/` — 4 pages + index
+- [x] `content/package-managers/` — 4 pages + index
+- [x] `content/version-control/` — 5 pages + index
+- [x] `content/first-project/` — 4 pages + index (the payoff: clone, run, change, ship)
+- [x] Rewrite `content/index.md` around the new sequencing
+- [x] Verify all 30 routes render and every frontmatter block validates
+
+## 9. Content — what comes next
+- [x] A language, sequenced after the toolchain — `content/python/` (order 7), 7 pages + index.
+      Framed as "enough Python to write scripts that do things", not a language course.
+      Deliberately skips OOP, decorators, generators, metaclasses.
+- [ ] AI engineering — calling LLM APIs, structured output, embeddings/RAG, evals. This is the
+      last major gap and the one the division's name points at.
+- [ ] Calling APIs (Python + JS) — deleted with v1 content; `files-and-json` covers the
+      response-handling patterns, so this is now about requests, auth and rate limits.
+- [ ] Decide whether `track` / `prereqs` frontmatter fields are needed to express the sequence
+      in the UI rather than only in prose
+- [ ] Decide whether `category` should drive grouping/filtering — it is currently set on every
+      file and never used
+
+## 10. Stretch goals (do not start until 1–8 are done)
 - [ ] Integrate Pagefind for static search over the built site
 - [ ] Add a landing/index page listing tutorials grouped by `category`
 - [ ] Add "last updated" display on each page using `updatedAt`
 
-## 10. Deploy
+## 11. Deploy
 - [ ] Push to GitHub
 - [ ] Connect repo to Vercel
 - [ ] Verify a production build succeeds and all tutorial routes are reachable
+
+## 12. Interactive content — MDX
+Supersedes the original "No MDX" constraint in `AGENTS.md`, at the owner's request on
+2026-09-21. `AGENTS.md` has been updated to document the new pipeline.
+
+- [x] Install `next-mdx-remote` (chosen over `@next/mdx` — Turbopack can't pass
+      non-serializable plugin options, so `rehype-pretty-code` would lose its theme)
+- [x] Extend `src/lib/content.ts` to handle `.md` and `.mdx` on the same slug space
+- [x] Enable `allowDangerousHtml` on the `.md` pipeline so raw HTML works there too
+- [x] Build `Callout`, `CommandTabs`, `CheckYourself` + `CodeEnhancer` (copy buttons)
+- [x] Register components globally via `src/lib/mdx-components.ts`
+- [x] Convert the pages where interactivity earns its place (8 of 29):
+      `uv`, `pip-and-requirements-txt`, `environment-variables-and-path`, `what-is-a-terminal`,
+      `working-with-files`, `python-virtual-environments`, `node-and-node-modules`,
+      `undoing-changes`
+- [ ] Convert remaining pages opportunistically — only where a component adds something.
+      Reference-style pages (long lists of errors, tables) should stay `.md`; `Callout`s on
+      every entry would be noise.
+
+## 13. Lockfile — RESOLVED
+`package-lock.json` initially did not list `next-mdx-remote` or its subtree, because `npm install`
+and `pnpm add` are both blocked by the sandbox's file broker (see the
+`node-project-install-in-sandbox` skill). The packages were resolved and extracted by hand.
+
+- [x] Regenerated the lockfile with `npm install --package-lock-only`, which only needs registry
+      metadata and does not run npm's bin-linking step. Lockfile now has 624 packages with
+      `next-mdx-remote@6.0.0` and its full MDX subtree pinned. `npm ci` will work on Vercel.
+

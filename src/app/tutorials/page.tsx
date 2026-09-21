@@ -1,5 +1,5 @@
 import { getMarkdownContent } from '@/lib/content';
-import MarkdownRenderer from '@/components/MarkdownRenderer';
+import ContentRenderer from '@/components/ContentRenderer';
 import { notFound } from 'next/navigation';
 
 export default async function TutorialsIndexPage() {
@@ -9,7 +9,7 @@ export default async function TutorialsIndexPage() {
     notFound();
   }
 
-  const { frontmatter, htmlContent } = result;
+  const { frontmatter } = result;
 
   return (
     <div className="space-y-6">
@@ -33,7 +33,7 @@ export default async function TutorialsIndexPage() {
           {frontmatter.title}
         </h1>
       </div>
-      <MarkdownRenderer html={htmlContent} />
+      <ContentRenderer result={result} />
     </div>
   );
 }

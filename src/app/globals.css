@@ -23,5 +23,87 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Code blocks: rehype-pretty-code emits --shiki-light / --shiki-dark per token.
+   Pick the right one per colour scheme and supply our own background. */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+}
+
+.prose pre {
+  background-color: #f6f8fa;
+  border: 1px solid var(--color-border, #e4e4e7);
+}
+
+.prose :not(pre) > code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  background-color: rgba(127, 127, 127, 0.12);
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  font-weight: 400;
+}
+
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-dark);
+  }
+
+  .prose pre {
+    background-color: #0d1117;
+    border-color: #27272a;
+  }
+}
+
+/* Raw HTML in .md files passes through (allowDangerousHtml). These give the
+   useful elements a sensible default so authors can reach for them directly. */
+
+.prose details {
+  border: 1px solid rgba(127, 127, 127, 0.25);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+}
+
+.prose details > summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--foreground);
+  list-style: none;
+}
+
+.prose details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.prose details > summary::before {
+  content: "▸ ";
+  display: inline-block;
+  transition: transform 0.15s ease;
+}
+
+.prose details[open] > summary::before {
+  content: "▾ ";
+}
+
+.prose details > summary:hover {
+  opacity: 0.75;
+}
+
+.prose kbd {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.85em;
+  padding: 0.15em 0.4em;
+  border: 1px solid rgba(127, 127, 127, 0.35);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background-color: rgba(127, 127, 127, 0.08);
 }

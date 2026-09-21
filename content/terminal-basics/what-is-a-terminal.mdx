@@ -1,0 +1,116 @@
+---
+title: "What is a Terminal?"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 1
+---
+
+# What is a Terminal?
+
+A **terminal** is the window. A **shell** is the program running inside it that reads what you type and decides what to do.
+
+You'll hear both words used interchangeably, and in practice it doesn't matter. What matters is that the thing you're typing into is a program that runs other programs.
+
+## Opening it
+
+| System | How |
+|---|---|
+| macOS | <kbd>Cmd</kbd> + <kbd>Space</kbd>, type `Terminal`. For a better one, install [iTerm2](https://iterm2.com) or [Ghostty](https://ghostty.org) |
+| Windows | Install **Windows Terminal** from the Microsoft Store, then pick PowerShell or WSL |
+| Linux | <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> on most distributions |
+| VS Code | <kbd>Ctrl</kbd> + <kbd>`</kbd> — opens a terminal already in your project folder |
+
+<Callout variant="tip" title="The VS Code option saves a step">
+
+It starts you in the folder you have open, so you skip the navigation entirely.
+
+If you're working on a project, this is almost always the fastest way in.
+
+</Callout>
+
+## Reading the prompt
+
+When you open a terminal, you see something like this:
+
+```
+haidar@MacBook find-sh %
+```
+
+That's the **prompt**. It's waiting for input. Reading it left to right:
+
+| Part | Meaning |
+|---|---|
+| `haidar` | your username |
+| `MacBook` | the machine name |
+| `find-sh` | the folder you're currently in |
+| `%` | "your turn" |
+
+The last character tells you which shell you're in: `%` or `$` for zsh/bash, `>` for PowerShell, `#` if you're running as root (you shouldn't be).
+
+The most useful part is the folder name. When you run a command that touches files, it touches files **in that folder** unless you say otherwise.
+
+## Running your first command
+
+Type this and press <kbd>Enter</kbd>:
+
+```bash
+echo "hello"
+```
+
+```
+hello
+```
+
+`echo` prints whatever you give it. It's the terminal equivalent of `print()` — useless on its own, and the simplest possible thing to verify your setup works.
+
+Now try one that tells you something real:
+
+```bash
+whoami
+```
+
+That prints your username. Two commands in, and you've already learned the shape of everything that follows: type a word, get an answer.
+
+## The three things that go wrong
+
+Almost every beginner problem is one of these:
+
+1. **`command not found`** — the program isn't installed, or your shell can't find it. See [Environment Variables and PATH](/tutorials/terminal-basics/environment-variables-and-path).
+2. **`No such file or directory`** — you're in the wrong folder, or you typo'd a filename. Run `pwd` to check where you are.
+3. **Nothing happens** — you're probably inside a program that's waiting for input.
+
+<Callout variant="tip" title="Ctrl + C is the most useful key in a terminal">
+
+It means "stop what you're doing and give me my prompt back."
+
+It will get you out of almost anything — a hanging command, a stuck program, an accidental `less` you can't escape.
+
+Memorise it now, before you need it.
+
+</Callout>
+
+<CheckYourself question="You ran a command and nothing happened — no output, no error, just a cursor on a new line. Is something broken?">
+
+Probably not. Most likely one of two things:
+
+1. **The command is waiting for input.** Some commands expect you to type something (or paste something) and press <kbd>Ctrl</kbd> + <kbd>D</kbd> to finish. A program with no prompt looks identical to a hung one.
+2. **It's genuinely slow.** Long-running commands print nothing until they finish.
+
+Either way, <kbd>Ctrl</kbd> + <kbd>C</kbd> gets you out and back to your prompt. Then you can check whether you meant to run something else.
+
+The one thing it isn't is a crash — a crash gives you an error message.
+
+</CheckYourself>
+
+## Quick reference
+
+| I want to... | Do this |
+|---|---|
+| Clear the screen | `clear` (or <kbd>Ctrl</kbd> + <kbd>L</kbd>) |
+| Stop a running command | <kbd>Ctrl</kbd> + <kbd>C</kbd> |
+| Cancel what I'm typing | <kbd>Ctrl</kbd> + <kbd>U</kbd> |
+| Exit the shell | `exit` |
+| Get my last command back | <kbd>↑</kbd> |
+| Search command history | <kbd>Ctrl</kbd> + <kbd>R</kbd> |
+| Finish a program's input | <kbd>Ctrl</kbd> + <kbd>D</kbd> |

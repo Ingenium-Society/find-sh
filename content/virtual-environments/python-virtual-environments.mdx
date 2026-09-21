@@ -1,0 +1,186 @@
+---
+title: "Python Virtual Environments"
+category: "Environments"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# Python Virtual Environments
+
+`venv` is built into Python. No install needed. One command creates an environment, one activates it.
+
+## Creating one
+
+From your project folder:
+
+```bash
+cd ~/projects/my-project
+python3 -m venv .venv
+```
+
+That's it. A `.venv` folder now exists containing its own copy of Python and an empty place to install packages.
+
+`-m venv` means "run the `venv` module." Read the whole command as: *use Python to create an environment here.*
+
+The folder name is a convention. `.venv` is what most tools look for automatically, and the leading dot keeps it out of your way in `ls`.
+
+## Activating it
+
+Creating the environment doesn't use it. You have to activate it.
+
+<CommandTabs
+  label="Activate the environment"
+  mac="source .venv/bin/activate"
+  linux="source .venv/bin/activate"
+  windows=".venv\Scripts\Activate.ps1"
+/>
+
+Your prompt changes:
+
+```
+(.venv) haidar@MacBook my-project %
+```
+
+That `(.venv)` is the important part. It's your only reliable signal that you're inside the environment. **Check for it before every install.**
+
+<Callout variant="note" title="PowerShell refuses to run the script">
+That's an execution policy setting, not a Python problem. Run this once:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+</Callout>
+
+## Using it
+
+Once active, `pip` installs into the project instead of globally:
+
+```bash
+pip install requests
+```
+
+Verify:
+
+```bash
+which python
+```
+
+```
+/Users/you/projects/my-project/.venv/bin/python
+```
+
+That path is the confirmation. If it says `/usr/bin/python` or `/usr/local/bin/python`, the environment isn't active and you're about to install into the wrong place.
+
+Check what's installed:
+
+```bash
+pip list
+```
+
+<CheckYourself question="You just ran pip install requests and it succeeded. What's the fastest way to confirm it went into the project environment rather than your system Python?">
+
+Run `which python`. If the path contains `.venv`, you're in the environment.
+
+You can also just look at your prompt — if there's no `(.venv)` at the start, you were never in the environment and the package went somewhere global.
+
+</CheckYourself>
+
+## Leaving
+
+```bash
+deactivate
+```
+
+The `(.venv)` disappears from your prompt. You're back to your normal shell.
+
+Deactivating is not deleting. The environment is still there — you just stopped using it.
+
+## Committing it (or rather, not)
+
+<Callout variant="danger" title="Never commit .venv">
+
+It contains thousands of files, is platform-specific, and can be regenerated from your dependency file in seconds. Committing it bloats the repository permanently.
+
+</Callout>
+
+Add it to `.gitignore` **before** you create it:
+
+```gitignore
+.venv/
+__pycache__/
+*.pyc
+```
+
+If you already committed it, adding to `.gitignore` afterwards doesn't remove it from history. You need:
+
+```bash
+git rm -r --cached .venv
+```
+
+See [Undoing Changes](/tutorials/version-control/undoing-changes) for why history is the hard part.
+
+## Telling your editor
+
+Your editor has its own idea of which Python to use, separate from your terminal. If imports show as errors in VS Code while the code runs fine in the terminal, this is why.
+
+1. <kbd>Cmd</kbd>/<kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>
+2. **Python: Select Interpreter**
+3. Pick the one showing `.venv` in its path
+
+Do this once per project. VS Code remembers it.
+
+## The workflow, end to end
+
+```bash
+cd ~/projects/my-project
+python3 -m venv .venv
+source .venv/bin/activate
+pip install requests
+# ... work ...
+deactivate
+```
+
+Next time you come back to the project:
+
+<CommandTabs
+  label="Re-entering an existing project"
+  mac="cd ~/projects/my-project && source .venv/bin/activate"
+  linux="cd ~/projects/my-project && source .venv/bin/activate"
+  windows="cd ~\projects\my-project; .venv\Scripts\Activate.ps1"
+/>
+
+You don't recreate it. It's already there, still holding the same packages.
+
+<CheckYourself question="You closed your laptop and came back the next day. Do you need to run python3 -m venv .venv again?">
+
+No. The environment still exists on disk with the same packages.
+
+You only need to activate it again. Recreating it would be a waste of time — and if you had installed packages into it, they'd still be there.
+
+The only time you recreate is when it's broken or was created with the wrong Python version.
+
+</CheckYourself>
+
+## Where this gets better
+
+`venv` is the baseline — it's built in, it works everywhere, and understanding it matters.
+
+It's also three separate commands (`venv`, `activate`, `pip`) doing one job, and it only manages Python versions awkwardly. **`uv`** replaces all of it with a single tool and is dramatically faster. See [uv](/tutorials/package-managers/uv) once you're comfortable with the mechanics here.
+
+Learn `venv` first. The concepts transfer directly, and you'll understand what `uv` is doing on your behalf.
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Create an environment | `python3 -m venv .venv` |
+| Activate (macOS/Linux) | `source .venv/bin/activate` |
+| Activate (Windows PS) | `.venv\Scripts\Activate.ps1` |
+| Check which Python is active | `which python` |
+| Install a package | `pip install name` |
+| List installed packages | `pip list` |
+| Save dependencies | `pip freeze > requirements.txt` |
+| Deactivate | `deactivate` |
+| Delete the environment | `rm -r .venv` (then recreate) |

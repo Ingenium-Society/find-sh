@@ -44,7 +44,6 @@ function FileIcon() {
 
 function FileTreeNode({ node }: { node: TreeNode }) {
   const pathname = usePathname();
-  const isActive = pathname === `/tutorials/${node.slug}`;
   const [isOpen, setIsOpen] = useState(true);
 
   if (node.type === 'folder') {
@@ -84,6 +83,8 @@ function FileTreeNode({ node }: { node: TreeNode }) {
       </li>
     );
   }
+
+  const isActive = pathname === `/tutorials/${node.slug}`;
 
   return (
     <li>

@@ -1,0 +1,265 @@
+---
+title: "Collections"
+category: "Python"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 3
+---
+
+# Collections
+
+Two data structures do almost all the work in practical Python: **lists** (an ordered sequence) and **dictionaries** (look things up by name).
+
+Learn these two properly and you can write most scripts.
+
+## Lists
+
+An ordered sequence of values, in square brackets:
+
+```python
+names = ["Ada", "Grace", "Alan"]
+numbers = [3, 1, 4, 1, 5]
+mixed = ["text", 42, True]          # allowed, but usually a sign you want a dict
+empty = []
+```
+
+### Getting things out
+
+```python
+names = ["Ada", "Grace", "Alan"]
+
+names[0]        # 'Ada'    — indexing starts at 0
+names[2]        # 'Alan'
+names[-1]       # 'Alan'   — -1 is the last item
+names[-2]       # 'Grace'
+```
+
+<Callout variant="warning" title="Indexing starts at zero">
+
+`names[0]` is the first item. `names[1]` is the second. There is no `names[3]` in a three-item list — that's an `IndexError`.
+
+This is not a Python quirk; it's how nearly every programming language works. Get used to it now.
+
+</Callout>
+
+Slicing takes a range:
+
+```python
+numbers = [10, 20, 30, 40, 50]
+
+numbers[1:3]      # [20, 30]     — from index 1, up to but NOT including 3
+numbers[:2]       # [10, 20]     — from the start
+numbers[2:]       # [30, 40, 50] — to the end
+numbers[-2:]      # [40, 50]     — last two
+```
+
+The "up to but not including" rule is the one to remember. `numbers[1:3]` gives you two items, not three.
+
+### Changing a list
+
+Unlike strings, lists **are** mutable:
+
+```python
+names = ["Ada", "Grace"]
+
+names.append("Alan")         # ['Ada', 'Grace', 'Alan']
+names.insert(0, "Katherine") # ['Katherine', 'Ada', 'Grace', 'Alan']
+names.remove("Ada")          # removes the first match
+names.pop()                  # removes and returns the last item
+names[0] = "K."              # replace by index
+```
+
+<Callout variant="note" title="append vs extend">
+
+`append` adds **one item**. `extend` adds **each item** from another list.
+
+```python
+a = [1, 2]
+a.append([3, 4])     # [1, 2, [3, 4]]   — a list inside a list
+a = [1, 2]
+a.extend([3, 4])     # [1, 2, 3, 4]     — four items
+```
+
+Mixing these up produces nested lists that break later code in confusing ways.
+
+</Callout>
+
+### Useful operations
+
+```python
+numbers = [3, 1, 4, 1, 5]
+
+len(numbers)             # 5
+sum(numbers)             # 14
+max(numbers)             # 5
+min(numbers)             # 1
+sorted(numbers)          # [1, 1, 3, 4, 5] — returns a NEW list
+numbers.sort()           # sorts in place, returns None
+1 in numbers             # True
+numbers.count(1)         # 2
+```
+
+Note the difference between `sorted(numbers)` and `numbers.sort()`. The first returns a new list and leaves the original alone. The second modifies the original and returns `None` — so `numbers = numbers.sort()` gives you `None`, which is a classic bug.
+
+### Looping over a list
+
+```python
+for name in names:
+    print(name)
+```
+
+If you need the position too:
+
+```python
+for index, name in enumerate(names):
+    print(f"{index}: {name}")
+```
+
+That's the idiomatic form. Don't write `for i in range(len(names))` unless you genuinely need the index.
+
+## Dictionaries
+
+A collection of key–value pairs, in curly braces:
+
+```python
+student = {
+    "name": "Ada",
+    "year": 12,
+    "active": True,
+}
+```
+
+Look up by key instead of position:
+
+```python
+student["name"]      # 'Ada'
+student["year"]      # 12
+```
+
+### Adding and changing
+
+```python
+student["email"] = "ada@example.com"     # adds a new key
+student["year"] = 13                     # overwrites
+del student["active"]                    # removes
+```
+
+### The `.get()` method
+
+Accessing a missing key raises `KeyError`:
+
+```python
+student["phone"]
+```
+
+```
+KeyError: 'phone'
+```
+
+`get()` returns a default instead, which is usually what you want:
+
+```python
+student.get("phone")             # None
+student.get("phone", "unknown")  # 'unknown'
+```
+
+<Callout variant="tip" title="Use .get() for anything that might be missing">
+
+If you're reading data from a file, an API, or user input, the key might not be there. `[]` crashes; `.get()` gives you a value you can work with.
+
+Reach for `[]` when a missing key genuinely means your code is wrong. Reach for `.get()` when it just means the data isn't there.
+
+</Callout>
+
+### Looping over a dictionary
+
+```python
+for key in student:
+    print(key)                       # keys only
+
+for key, value in student.items():
+    print(f"{key}: {value}")         # keys and values
+```
+
+`student.keys()`, `student.values()`, and `student.items()` give you each view. `items()` is the one you'll use most.
+
+### Nested structures
+
+Real data is usually a list of dictionaries:
+
+```python
+students = [
+    {"name": "Ada", "year": 12, "score": 91},
+    {"name": "Grace", "year": 12, "score": 88},
+    {"name": "Alan", "year": 11, "score": 95},
+]
+```
+
+Which you then process:
+
+```python
+for student in students:
+    print(f"{student['name']}: {student['score']}")
+
+best = max(students, key=lambda s: s["score"])
+print(f"Top score: {best['name']}")
+```
+
+This shape — **a list of dictionaries** — is what you'll get back from almost every API and CSV file. Getting comfortable with it is most of the practical work.
+
+<CheckYourself question="You have a list of dictionaries, one per student. Write the loop that prints each name and score. Then: what does students[0]['name'] give you?">
+
+```python
+for student in students:
+    print(f"{student['name']}: {student['score']}")
+```
+
+`students[0]` is the **first dictionary**. `students[0]['name']` indexes into that dictionary to get the value for `"name"` — so for the data above, `'Ada'`.
+
+Read it inside-out: get item 0 from the list (a dict), then get `"name"` from that dict.
+
+A common mistake is writing `student["name"]` when `student` is actually a *string* — check the shape with `type()` when you're unsure.
+
+</CheckYourself>
+
+## When to use which
+
+| You need... | Use | Why |
+|---|---|---|
+| An ordered sequence | `list` | position matters |
+| Look something up by name | `dict` | fast, and the key says what it means |
+| A fixed group of values | `tuple` | `(x, y)` — can't be changed |
+| Unique values only | `set` | duplicates removed automatically |
+| A list of records | `list` of `dict` | the standard shape |
+
+```python
+point = (3, 4)                   # tuple — immutable, good for fixed groups
+tags = {"python", "git", "cli"}  # set — no duplicates, no order
+```
+
+You'll use lists and dicts constantly. Tuples and sets are worth recognising when you see them.
+
+## Quick reference
+
+| I want to... | Code |
+|---|---|
+| Make a list | `[1, 2, 3]` |
+| First item | `items[0]` |
+| Last item | `items[-1]` |
+| A slice | `items[1:3]` |
+| Add one item | `items.append(x)` |
+| Add many items | `items.extend([...])` |
+| Remove by value | `items.remove(x)` |
+| Remove and return last | `items.pop()` |
+| Sort in place | `items.sort()` |
+| Get a sorted copy | `sorted(items)` |
+| Loop with index | `for i, x in enumerate(items):` |
+| Make a dict | `{"key": "value"}` |
+| Look up safely | `d.get("key", default)` |
+| Add or change a key | `d["key"] = value` |
+| Loop key + value | `for k, v in d.items():` |
+| Length | `len(x)` |
+
+## Next
+
+**[Control Flow](/tutorials/python/control-flow)** — making decisions and repeating work.

@@ -1,0 +1,157 @@
+---
+title: "Working with Files"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 3
+---
+
+# Working with Files
+
+Create, read, copy, move, delete. Five verbs, and you can manage an entire project.
+
+Do this section in a scratch folder. Somewhere you'd be happy to see emptied. Create one now:
+
+```bash
+mkdir -p ~/terminal-practice
+cd ~/terminal-practice
+```
+
+## Creating
+
+```bash
+mkdir projects              # a folder
+mkdir -p a/b/c              # nested folders, all at once
+touch notes.txt             # an empty file
+```
+
+`touch` creates an empty file if it doesn't exist. If it *does* exist, it updates the modified timestamp and leaves the contents alone — a detail that matters in build systems and won't matter to you yet.
+
+## Reading
+
+```bash
+cat notes.txt               # print the whole file
+less notes.txt              # scroll through it (q to quit)
+head -n 5 notes.txt         # first 5 lines
+tail -n 5 notes.txt         # last 5 lines
+```
+
+Use `cat` for short files and `less` for anything longer than a screen. Printing a 5,000-line log with `cat` will flood your terminal and lose the part you wanted to read.
+
+`tail -f` is worth knowing early — it follows a file as it grows, which is how you watch a running program's log:
+
+```bash
+tail -f server.log
+```
+
+## Writing text without an editor
+
+```bash
+echo "first line" > notes.txt      # overwrite the file
+echo "second line" >> notes.txt    # append to it
+```
+
+<Callout variant="warning" title="&gt; replaces. &gt;&gt; appends.">
+
+Using `>` when you meant `>>` silently destroys the file's contents, and there's no undo.
+
+```bash
+echo "new data" > important.txt     # important.txt is now one line long
+echo "new data" >> important.txt    # important.txt has one more line
+```
+
+Get in the habit of checking which one you typed. `>` is not "add to", it is "replace with".
+
+</Callout>
+
+## Copying and moving
+
+```bash
+cp notes.txt notes-backup.txt       # copy a file
+cp -r projects projects-backup      # copy a folder (-r = recursive)
+mv notes.txt archive/               # move into a folder
+mv notes.txt renamed.txt            # rename
+```
+
+`mv` does both moving and renaming, because from the filesystem's point of view they're the same operation: change where this thing lives.
+
+Copying a folder without `-r` fails:
+
+```
+cp: projects is a directory (not copied).
+```
+
+`-r` means recursive — "and everything inside it." You'll meet this flag again in [Commands, Flags, and Help](/tutorials/terminal-basics/commands-flags-and-help).
+
+## Deleting
+
+```bash
+rm notes.txt                # delete a file
+rm -r projects              # delete a folder and its contents
+rmdir empty-folder          # delete an empty folder only
+```
+
+<Callout variant="danger" title="There is no trash. rm is permanent.">
+
+`rm` deletes immediately. Nothing goes to the Recycle Bin, nothing is recoverable, and there is no confirmation prompt.
+
+Read that again, because it's the one thing in this section that will actually cost you work.
+
+</Callout>
+
+Two habits that prevent the worst outcomes:
+
+**Never run `rm -rf` on a path you typed by hand.** The `-f` flag means "force, don't ask," and combined with `-r` it will delete anything you point it at. If you mistype a space, `rm -rf /Users/you/My Documents` becomes two targets instead of one.
+
+**Check the path before you delete it.** `ls` the exact target first:
+
+```bash
+ls projects/          # is this what I think it is?
+rm -r projects/       # now delete it
+```
+
+If you want a safety net, `trash` moves files to the system trash instead:
+
+```bash
+brew install trash
+trash projects/
+```
+
+For anything you might regret, that's worth the install.
+
+<CheckYourself question="You typed echo &quot;config&quot; > settings.txt when you meant to add a line to the end. What did you just lose, and where did it go?">
+
+You replaced the entire contents of `settings.txt` with the single line `config`.
+
+It didn't go anywhere — it's gone. `>` overwrites rather than appends, and unlike `rm` there isn't even a prompt to think about it.
+
+If `settings.txt` was tracked by Git, `git restore settings.txt` recovers the last committed version. If it wasn't, the file is lost. That's a good argument for keeping anything you care about under version control.
+
+</CheckYourself>
+
+## Finding things
+
+```bash
+find . -name "*.md"             # find files by name, from here down
+find . -name "*.md" -type f     # files only, not folders
+```
+
+`find` is slow but exhaustive. For quickly locating files by name in a project, it's usually enough.
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Make a folder | `mkdir name` |
+| Make nested folders | `mkdir -p a/b/c` |
+| Make an empty file | `touch file.txt` |
+| Print a file | `cat file.txt` |
+| Scroll a long file | `less file.txt` |
+| Overwrite a file | `echo "text" > file.txt` |
+| Append to a file | `echo "text" >> file.txt` |
+| Copy a file | `cp a.txt b.txt` |
+| Copy a folder | `cp -r folder folder-copy` |
+| Move or rename | `mv old.txt new.txt` |
+| Delete a file | `rm file.txt` |
+| Delete a folder | `rm -r folder` |
+| Find by name | `find . -name "*.md"` |

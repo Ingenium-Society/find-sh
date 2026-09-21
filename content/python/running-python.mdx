@@ -1,0 +1,202 @@
+---
+title: "Running Python"
+category: "Python"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 1
+---
+
+# Running Python
+
+Before anything else: how do you actually run code? There are three ways, and knowing which to use saves a lot of confusion.
+
+## The REPL
+
+Type `python3` with no arguments and you get an interactive prompt:
+
+```bash
+python3
+```
+
+```
+Python 3.12.4 (main, ...)
+Type "help", "copyright", "credits" or "license" for more information.
+>>>
+```
+
+The `>>>` is the prompt. Type an expression, press <kbd>Enter</kbd>, and Python evaluates it immediately:
+
+```python
+>>> 2 + 2
+4
+>>> "hello".upper()
+'HELLO'
+```
+
+This is the **REPL** — Read, Evaluate, Print, Loop. It's the fastest way to check what something does without writing a file.
+
+Use it to answer questions. "Does this method exist?" "What does this return?" Type it and find out, in two seconds.
+
+Exit with:
+
+```python
+>>> exit()
+```
+
+Or <kbd>Ctrl</kbd> + <kbd>D</kbd>.
+
+<Callout variant="note" title="The REPL forgets everything">
+
+Close it and your variables are gone. It's a scratchpad, not a workspace.
+
+Also: the REPL prints the value of every expression automatically, which is why `2 + 2` shows `4` without you asking. A script does not do that — see below.
+
+</Callout>
+
+## Running a script
+
+Put code in a file and run the file:
+
+```python
+# hello.py
+name = "Ingenium"
+print(f"Hello, {name}!")
+```
+
+```bash
+python3 hello.py
+```
+
+```
+Hello, Ingenium!
+```
+
+Note the `print()`. In a script, nothing is displayed unless you explicitly print it. That trips up everyone coming from the REPL:
+
+| | REPL | Script |
+|---|---|---|
+| `2 + 2` | prints `4` | prints nothing |
+| `print(2 + 2)` | prints `4` | prints `4` |
+
+If your script "does nothing", you probably forgot `print()`.
+
+<Callout variant="tip" title="Use uv run inside a project">
+
+If you set up a project with `uv` (see [uv](/tutorials/package-managers/uv)), run scripts with:
+
+```bash
+uv run python hello.py
+```
+
+Or, if the project declares an entry point:
+
+```bash
+uv run hello
+```
+
+`uv run` guarantees the code executes with the project's dependencies at their locked versions. No activating anything, and no chance of running against the wrong Python.
+
+For a one-off file outside any project, `python3 hello.py` is fine.
+
+</Callout>
+
+## `python file.py` vs `python -m module`
+
+Two forms you'll see, and the difference matters.
+
+```bash
+python3 script.py           # run a file by path
+python3 -m http.server      # run an installed module by name
+```
+
+The `-m` form tells Python to find a module **on the import path** and run it. That's how you run tools that were installed as packages:
+
+```bash
+python3 -m venv .venv
+python3 -m pip install requests
+python3 -m json.tool data.json
+```
+
+<Callout variant="warning" title="Prefer -m when running installed tools">
+
+`python3 -m pip install requests` is more reliable than `pip install requests`.
+
+Why: `pip` as a bare command might point at a *different* Python than `python3` does — especially on systems with several installed. Using `-m` guarantees the tool runs under the interpreter you named.
+
+Same reasoning applies to `python3 -m venv`, which is why [Python Virtual Environments](/tutorials/virtual-environments/python-virtual-environments) teaches it that way.
+
+</Callout>
+
+## The `__main__` pattern
+
+You'll see this in almost every Python file you open:
+
+```python
+def greet(name):
+    return f"Hello, {name}!"
+
+
+if __name__ == "__main__":
+    print(greet("Ingenium"))
+```
+
+Two things are happening.
+
+**The file can be run directly.** `python3 hello.py` prints the greeting.
+
+**The file can be imported without running anything.** If another file does `import hello`, the `greet` function becomes available and the `print` does *not* execute.
+
+`__name__` is a variable Python sets automatically. When you run a file directly, `__name__` equals `"__main__"`. When the file is imported, `__name__` equals the module's name instead — so the condition is false and the block is skipped.
+
+<CheckYourself question="You write a file with a print() at the top level, no __main__ guard. A teammate imports it to reuse one function. What happens?">
+
+Your `print()` runs — the moment they import it, before they've called anything.
+
+Python executes the whole file when it's imported. The `if __name__ == "__main__":` guard is what prevents that: it makes the block run only when the file is the entry point, not when it's being borrowed from.
+
+For a script nobody will import, the guard is optional. For anything reusable, it's expected.
+
+</CheckYourself>
+
+## A complete starting point
+
+```python
+#!/usr/bin/env python3
+"""Summarise a list of names."""
+
+
+def summarise(names: list[str]) -> str:
+    return f"{len(names)} names: {', '.join(names)}"
+
+
+if __name__ == "__main__":
+    print(summarise(["Ada", "Grace", "Alan"]))
+```
+
+```bash
+uv run python summarise.py
+```
+
+```
+3 names: Ada, Grace, Alan
+```
+
+The `#!/usr/bin/env python3` line is a **shebang** — it lets the file be executed directly on macOS and Linux. Optional, and harmless to include.
+
+The triple-quoted string under it is a **docstring**, describing what the file does. Also optional, and worth the two seconds.
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Open the REPL | `python3` |
+| Exit the REPL | `exit()` or <kbd>Ctrl</kbd> + <kbd>D</kbd> |
+| Run a file | `python3 script.py` |
+| Run it in a project environment | `uv run python script.py` |
+| Run an installed module | `python3 -m module_name` |
+| Check the version | `python3 --version` |
+| Check which Python is active | `which python3` |
+
+## Next
+
+**[Values and Variables](/tutorials/python/values-and-variables)** — the building blocks, and the type errors that confuse everyone at first.

@@ -1,0 +1,202 @@
+---
+title: "uv"
+category: "Dependencies"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 3
+---
+
+# uv
+
+`uv` is a single tool that replaces `pip`, `venv`, `pip-tools`, `pipx`, and `pyenv`. It's written in Rust, resolves dependencies in milliseconds rather than minutes, and produces a proper lockfile without any extra setup.
+
+If you're starting a new Python project, use this.
+
+## Installing it
+
+<CommandTabs
+  label="Install uv"
+  mac="brew install uv"
+  linux="curl -LsSf https://astral.sh/uv/install.sh | sh"
+  windows="powershell -ExecutionPolicy ByPass -c &quot;irm https://astral.sh/uv/install.ps1 | iex&quot;"
+/>
+
+Then check it worked:
+
+```bash
+uv --version
+```
+
+<Callout variant="warning" title="Do not install it with pip">
+
+`pip install uv` will "work", but it puts `uv` inside whichever Python environment is active — so it disappears when you switch environments, and it can't manage the Python that's running it. Use the installer for your platform.
+
+</Callout>
+
+## Starting a project
+
+```bash
+uv init my-project
+cd my-project
+```
+
+This creates:
+
+```
+my-project/
+├── .gitignore
+├── .python-version
+├── pyproject.toml
+├── README.md
+└── src/
+    └── my_project/
+        └── __init__.py
+```
+
+Four files, each doing one job:
+
+| File | Purpose | Commit? |
+|---|---|---|
+| `pyproject.toml` | your declared dependencies | yes |
+| `.python-version` | which Python this project uses | yes |
+| `uv.lock` | the exact resolved versions | yes |
+| `.venv/` | the environment itself | no — git-ignored |
+
+`uv.lock` appears the first time you run a project command (`uv run`, `uv sync`, or `uv lock`), not at `init`.
+
+## Adding dependencies
+
+```bash
+uv add requests
+uv add 'requests==2.31.0'          # exact version
+uv add 'requests>=2.28,<3'         # range
+uv add --dev pytest                # dev-only dependency
+uv add git+https://github.com/psf/requests   # straight from git
+uv remove requests
+```
+
+One command does what four used to: it updates `pyproject.toml`, re-resolves the lockfile, and installs into `.venv`. You never edit a `requirements.txt` by hand, and you never run `pip freeze`.
+
+## Running things
+
+```bash
+uv run python script.py
+uv run pytest
+uv run flask run -p 3000
+```
+
+`uv run` checks that the lockfile matches `pyproject.toml` and that the environment matches the lockfile — then runs your command in it. If anything is out of date, it fixes it first.
+
+This is the biggest quality-of-life change. **You never activate a virtual environment.** There's no `(.venv)` to forget, no installing into the wrong place because you forgot to activate.
+
+If you prefer the traditional workflow, it still works:
+
+<CommandTabs
+  label="Sync, then activate"
+  mac="uv sync&#10;source .venv/bin/activate&#10;python script.py"
+  linux="uv sync&#10;source .venv/bin/activate&#10;python script.py"
+  windows="uv sync&#10;.venv\Scripts\activate&#10;python script.py"
+/>
+
+<CheckYourself question="You just ran uv add requests. Did anything get installed into your global Python?">
+
+No. `uv add` resolves the package, updates `pyproject.toml` and `uv.lock`, and installs into the project's `.venv`.
+
+Your global Python is untouched — which is the whole point. You never need to activate anything, because `uv run` targets the project environment directly.
+
+</CheckYourself>
+
+## Reproducing someone else's project
+
+```bash
+git clone https://github.com/some/project.git
+cd project
+uv sync
+```
+
+Done. `uv sync` reads the lockfile and builds `.venv` to match exactly — same versions, every machine. This replaces the old `pip install -r requirements.txt`, and unlike that command, it can't drift.
+
+## Python versions
+
+`uv` installs and manages Python itself, without touching your system Python:
+
+```bash
+uv python install 3.12         # download a standalone Python
+uv python list                 # see what's available and installed
+uv python pin 3.12             # write .python-version for this project
+```
+
+Because `.python-version` is committed, a new member cloning the project gets the right Python automatically on their first `uv sync`. No setup instructions, no "make sure you have 3.12."
+
+## Migrating an existing project
+
+If you have a `requirements.txt`:
+
+```bash
+uv init
+uv add -r requirements.txt
+```
+
+That imports everything into `pyproject.toml` and generates `uv.lock`. Then delete `requirements.txt` — you don't need it anymore.
+
+## Updating dependencies
+
+```bash
+uv lock --upgrade                      # update everything within allowed ranges
+uv lock --upgrade-package requests     # update just one package
+uv sync                                # apply the new lockfile to .venv
+```
+
+Note the distinction: `uv lock` changes the lockfile, `uv sync` changes the environment. Upgrading is a two-step, which is deliberate — you can review the lockfile diff before anything is installed.
+
+## The pip-compatible escape hatch
+
+Some tools and scripts expect `pip` to exist. `uv pip` gives you the same interface, running through uv:
+
+```bash
+uv pip install requests
+uv pip list
+uv pip compile requirements.in -o requirements.txt
+```
+
+Use this for compatibility, not as your normal workflow. The `uv add` / `uv sync` commands are the real interface.
+
+## Running a one-off tool
+
+```bash
+uvx ruff check .
+uvx black .
+```
+
+`uvx` (short for `uv tool run`) downloads a tool, runs it, and discards it. Nothing is installed permanently. It replaces `pipx`.
+
+## What this replaces
+
+| Old workflow | With uv |
+|---|---|
+| `python3 -m venv .venv` | automatic |
+| `source .venv/bin/activate` | `uv run` — no activation |
+| `pip install requests` | `uv add requests` |
+| `pip install -r requirements.txt` | `uv sync` |
+| `pip freeze > requirements.txt` | automatic — `uv.lock` |
+| `pip-compile` | built in |
+| `pipx run ruff` | `uvx ruff` |
+| `pyenv install 3.12` | `uv python install 3.12` |
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Install uv | see the tabs at the top of this page |
+| Start a project | `uv init name` |
+| Add a dependency | `uv add name` |
+| Add a dev dependency | `uv add --dev name` |
+| Remove one | `uv remove name` |
+| Install from lockfile | `uv sync` |
+| Run something | `uv run python script.py` |
+| Update everything | `uv lock --upgrade` |
+| Update one package | `uv lock --upgrade-package name` |
+| Install a Python | `uv python install 3.12` |
+| Pin the project's Python | `uv python pin 3.12` |
+| Run a one-off tool | `uvx tool-name` |
+| Import a requirements.txt | `uv add -r requirements.txt` |

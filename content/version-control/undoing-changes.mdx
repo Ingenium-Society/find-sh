@@ -1,0 +1,235 @@
+---
+title: "Undoing Changes"
+category: "Version Control"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 5
+---
+
+# Undoing Changes
+
+The most useful thing about Git. Almost nothing you do is permanent — but *which* command to use depends entirely on how far the mistake has travelled.
+
+## Find your situation first
+
+| What happened | Command | Safe? |
+|---|---|---|
+| Edited a file, want it back | `git restore file.py` | **No — destroys your edits** |
+| Staged something you didn't mean to | `git restore --staged file.py` | yes |
+| Bad commit message | `git commit --amend` | rewrites history |
+| Committed something wrong, not pushed | `git reset --soft HEAD~1` | rewrites history |
+| Committed something wrong, already pushed | `git revert <commit>` | yes |
+| Deleted a branch or lost a commit | `git reflog` | yes |
+| Committed a secret | see [below](#you-committed-a-secret) | **assume it's compromised** |
+
+## Undoing edits you haven't staged
+
+```bash
+git restore report.py
+```
+
+This throws away your changes to that file and puts it back to the last committed version.
+
+<Callout variant="danger" title="There is no undo for this">
+
+The edits are gone, because Git never saw them. Nothing was committed, so nothing is recorded.
+
+Check what you're about to lose first:
+
+```bash
+git diff report.py
+```
+
+</Callout>
+
+If you want to keep the changes but set them aside temporarily:
+
+```bash
+git stash
+git stash pop
+```
+
+`stash` saves uncommitted changes and gives you a clean working directory. `pop` brings them back. Useful when you need to switch branches but aren't ready to commit.
+
+## Unstaging
+
+Staged a file you didn't mean to include:
+
+```bash
+git restore --staged report.py
+```
+
+This removes it from the staging area but **keeps your edits**. The file goes back to "modified, not staged."
+
+Note the difference from the command above: `--staged` is the only change, and it's the difference between safe and destructive.
+
+## Fixing the last commit
+
+Wrong message:
+
+```bash
+git commit --amend -m "Correct message here"
+```
+
+Forgot to include a file:
+
+```bash
+git add forgotten-file.py
+git commit --amend --no-edit
+```
+
+`--no-edit` keeps the existing message.
+
+<Callout variant="warning" title="Amending rewrites the commit">
+
+It replaces the old one with a new one that has a different hash. Fine if you haven't pushed. If you have, see the rule below.
+
+</Callout>
+
+## Undoing a commit
+
+`git reset` moves your branch pointer backwards. The flag decides what happens to the changes:
+
+```bash
+git reset --soft HEAD~1     # undo the commit, keep changes staged
+git reset HEAD~1            # undo the commit, keep changes unstaged (the default)
+git reset --hard HEAD~1     # undo the commit AND delete the changes
+```
+
+`HEAD~1` means "one commit before the current one."
+
+| Flag | Commit | Your changes |
+|---|---|---|
+| `--soft` | undone | still staged |
+| *(none)* | undone | unstaged, still in the files |
+| `--hard` | undone | **gone** |
+
+`--soft` is almost always what you want. You committed too early or with the wrong message, and you want to redo it properly:
+
+```bash
+git reset --soft HEAD~1
+git add .
+git commit -m "Better message"
+```
+
+<Callout variant="danger" title="--hard deletes work">
+
+It's the one command on this page that can genuinely cost you an afternoon.
+
+Run `git status` and `git log --oneline` first, and be certain `HEAD~1` is where you think it is. If you get it wrong, `git reflog` is your recovery — but only if you notice before Git garbage-collects the commit.
+
+</Callout>
+
+## Undoing a commit you've already pushed
+
+Don't use `reset`. If you've pushed, other people have that commit. Rewriting it makes your history disagree with theirs, and the next person to pull gets confusing errors.
+
+Use `revert` instead, which creates a **new** commit that undoes the old one:
+
+```bash
+git revert a3f9c21
+```
+
+The original commit stays in history, and a new one reverses its changes. Nothing is rewritten, so nothing breaks for anyone else.
+
+<Callout variant="tip" title="The rule, in one line">
+
+`reset` before pushing. `revert` after.
+
+`revert` keeps history honest but doesn't erase anything. `reset` erases cleanly but only works before you share.
+
+</Callout>
+
+<CheckYourself question="You pushed a commit that broke the build. A teammate has already pulled it. Do you use git reset or git revert, and why?">
+
+`git revert`.
+
+Their local history now contains that commit. If you `reset` it away, your history and theirs disagree — their next `git pull` produces conflicts or confusing errors, and they may end up force-pushing to fix it.
+
+`git revert` adds a *new* commit that undoes the old one. Everyone pulls it normally, nothing is rewritten, and the record of the mistake stays visible — which is usually a feature, not a bug.
+
+The rule: `reset` before pushing, `revert` after.
+
+</CheckYourself>
+
+## Recovering things you thought were lost
+
+`git reflog` records every position `HEAD` has been at — including commits you reset away, branches you deleted, and amends you made.
+
+```bash
+git reflog
+```
+
+```
+a3f9c21 HEAD@{0}: reset: moving to HEAD~1
+7b2e104 HEAD@{1}: commit: Add sorting
+4c1d88a HEAD@{2}: commit: Add CSV parsing
+```
+
+The "lost" commit `7b2e104` is right there. Get it back:
+
+```bash
+git reset --hard 7b2e104
+```
+
+Or recover a deleted branch:
+
+```bash
+git switch -c recovered-branch 7b2e104
+```
+
+Reflog entries expire after about 90 days, and only for commits Git has actually garbage-collected.
+
+<Callout variant="tip" title="Check reflog before panicking">
+
+When you think you've destroyed work, `git reflog` is the first thing to run — before you do anything else, and before you ask anyone.
+
+For anything recent, it's a complete safety net.
+
+</Callout>
+
+## You committed a secret
+
+This is the one case with no clean fix, and it's worth reading even if it hasn't happened to you.
+
+<Callout variant="danger" title="Assume the secret is compromised the moment it's pushed">
+
+Automated scanners watch public GitHub repositories and find leaked keys within minutes. You will not be fast enough to delete it first.
+
+Revoking the key is the only step that actually solves the problem. Cleaning up the repository is tidiness, not security.
+
+</Callout>
+
+What to do, in order:
+
+1. **Revoke the key immediately.** Go to the provider (OpenAI, Supabase, GitHub) and invalidate it. This is the only step that actually solves the problem.
+2. **Generate a new one** and put it in `.env`, which should be in `.gitignore`.
+3. **Then** clean up the repository, for tidiness rather than security:
+
+```bash
+git rm --cached .env
+echo ".env" >> .gitignore
+git commit -m "Remove committed secrets file"
+```
+
+Note `--cached` — it removes the file from Git's tracking but keeps it on your disk, which is what you want.
+
+If you need the file gone from history entirely, that requires rewriting every commit that touched it (`git filter-repo`), force-pushing, and telling everyone to re-clone. It's disruptive, it doesn't un-leak the key, and for a club project it's usually not worth it once the key has been revoked.
+
+**The lesson is the prevention.** Add `.env` to `.gitignore` before you create the file, not after. See [Git Basics](/tutorials/version-control/git-basics) for a `.gitignore` starting point.
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Discard edits to a file | `git restore file.py` |
+| Unstage a file | `git restore --staged file.py` |
+| Set changes aside temporarily | `git stash` |
+| Bring them back | `git stash pop` |
+| Fix the last commit message | `git commit --amend -m "new"` |
+| Undo last commit, keep changes | `git reset --soft HEAD~1` |
+| Undo last commit, discard changes | `git reset --hard HEAD~1` |
+| Undo a pushed commit | `git revert <hash>` |
+| See everything that happened | `git reflog` |
+| Recover a lost commit | `git reset --hard <hash>` |
+| Stop tracking a file | `git rm --cached file` |

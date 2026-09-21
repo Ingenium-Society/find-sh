@@ -1,0 +1,170 @@
+---
+title: "Environment Variables and PATH"
+category: "Terminal"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 6
+---
+
+# Environment Variables and PATH
+
+This page explains `command not found` — the error you will hit more than any other, and the one that most often gets "fixed" with a guess that makes things worse later.
+
+## What an environment variable is
+
+A variable your shell holds and passes to every program it launches. Programs read them to find out about the world they're running in.
+
+```bash
+echo $HOME
+```
+
+```
+/Users/haidaralifawwaz
+```
+
+The `$` means "the value of." Without it you'd just print the word `HOME`.
+
+Setting one:
+
+```bash
+export EDITOR="nano"
+```
+
+`export` is what makes it available to programs you launch, not just to your current shell. Without `export`, the variable exists but nothing else can see it — a subtle difference that causes confusing bugs.
+
+Check what's set:
+
+```bash
+env                 # everything
+echo $PATH          # one specific variable
+```
+
+## PATH
+
+`PATH` is a list of folders, separated by colons. When you type a command, your shell searches these folders **in order** and runs the first match it finds.
+
+```bash
+echo $PATH
+```
+
+```
+/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
+```
+
+This is why `ls` works without you typing `/bin/ls`. The shell found it in one of those folders.
+
+**And this is what `command not found` actually means.** You typed a program name, the shell searched every folder in `PATH`, and found nothing. It's not saying the program is missing — it's saying *the shell doesn't know where it is*.
+
+## Adding something to PATH
+
+Say you installed a tool at `/Users/you/.local/bin/mytool` and typing `mytool` fails.
+
+First confirm the file is actually there and runnable:
+
+```bash
+ls -l /Users/you/.local/bin/mytool
+```
+
+If it exists, add its folder to PATH:
+
+```bash
+export PATH="$PATH:/Users/you/.local/bin"
+```
+
+<Callout variant="danger" title="Never omit the &quot;$PATH:&quot; prefix">
+
+You're **appending** to the existing list, not replacing it.
+
+Running `export PATH="/Users/you/.local/bin"` wipes your PATH — and suddenly `ls` doesn't work either, because the shell can no longer find it.
+
+If that happens, close the terminal and open a new one. The change was only for that session.
+
+</Callout>
+
+Order matters too. Folders earlier in PATH win. Prepending puts yours first:
+
+```bash
+export PATH="/Users/you/.local/bin:$PATH"
+```
+
+## Making it permanent
+
+`export` only lasts for the current terminal session. Close the window and it's gone.
+
+To make it stick, put the line in your shell's startup file.
+
+<CommandTabs
+  label="Where your shell reads startup config from"
+  mac="# zsh (the default on macOS)&#10;~/.zshrc"
+  linux="# usually bash&#10;~/.bashrc"
+  windows="# PowerShell&#10;$PROFILE"
+/>
+
+Not sure which shell you're in?
+
+```bash
+echo $SHELL
+```
+
+Then append the line and reload:
+
+<CommandTabs
+  label="Add a folder to PATH permanently"
+  mac="echo 'export PATH=&quot;$PATH:/Users/you/.local/bin&quot;' >> ~/.zshrc&#10;source ~/.zshrc"
+  linux="echo 'export PATH=&quot;$PATH:/home/you/.local/bin&quot;' >> ~/.bashrc&#10;source ~/.bashrc"
+  windows="Add-Content $PROFILE '`$env:PATH += &quot;;C:\tools\bin&quot;'&#10;. $PROFILE"
+/>
+
+`source` reloads the file into your current session so you don't have to open a new terminal.
+
+<CheckYourself question="You added a folder to PATH with export, it worked, then you opened a new terminal and the command is missing again. Why?">
+
+Because `export` only affects the **current shell session**. A new terminal is a new session, and it never saw your change.
+
+To persist it you have to write the line into your shell's startup file — `~/.zshrc`, `~/.bashrc`, or `$PROFILE` depending on your shell and platform — and then either `source` it or open a new terminal.
+
+This is the single most common PATH mistake. The command "worked" and then mysteriously stopped.
+
+</CheckYourself>
+
+## `.env` files are a different thing
+
+You'll see `.env` files in projects like this:
+
+```
+DATABASE_URL=postgres://localhost/mydb
+API_KEY=sk-abc123
+```
+
+These are **not** shell environment variables. They're a convention — a plain text file that a program reads at startup and loads into its own environment. Your shell knows nothing about them.
+
+The distinction matters because a common beginner mistake is putting a real secret in `~/.zshrc` (which persists forever, everywhere) when it belonged in a project's `.env` (which is scoped and git-ignored).
+
+<Callout variant="danger" title="Never commit a .env file">
+
+Add it to `.gitignore` **before** you create it, not after.
+
+Once a secret is committed and pushed, assume it's compromised — automated scanners find leaked keys in public repositories within minutes. See [Undoing Changes](/tutorials/version-control/undoing-changes) for the full procedure.
+
+</Callout>
+
+## Where this leads
+
+`PATH` and "which version of a tool am I actually running" are the same problem in a different costume.
+
+The moment you have two Python projects needing two different package versions, you're asking: which `python` does the shell find, and which packages does that one have? That question has a real answer, and it's the subject of the next section:
+
+**[Virtual Environments](/tutorials/virtual-environments)**
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Read a variable | `echo $VAR` |
+| Set for this session | `export VAR="value"` |
+| List everything | `env` |
+| See the search path | `echo $PATH` |
+| Add a folder to PATH | `export PATH="$PATH:/new/folder"` |
+| Make it permanent | add the line to your shell's startup file |
+| Reload your shell config | `source ~/.zshrc` |
+| Check your shell | `echo $SHELL` |

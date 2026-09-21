@@ -1,0 +1,246 @@
+---
+title: "Errors and Debugging"
+category: "Python"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 7
+---
+
+# Errors and Debugging
+
+Reading errors is the highest-return skill in this entire curriculum. Everything else is vocabulary you can look up.
+
+This page is about turning a wall of red text into a specific thing to fix.
+
+## Reading a traceback
+
+Python prints a **traceback** when something fails. Beginners read the first line. You should read the last.
+
+```python
+def average(scores):
+    return sum(scores) / len(scores)
+
+
+def report(students):
+    return average([s["score"] for s in students])
+
+
+print(report([]))
+```
+
+```
+Traceback (most recent call last):
+  File "report.py", line 9, in <module>
+    print(report([]))
+  File "report.py", line 6, in report
+    return average([s["score"] for s in students])
+  File "report.py", line 2, in average
+    return sum(scores) / len(scores)
+ZeroDivisionError: division by zero
+```
+
+Read it **bottom-up**:
+
+| Line | What it tells you |
+|---|---|
+| `ZeroDivisionError: division by zero` | **What** went wrong |
+| `File "report.py", line 2, in average` | **Where** — the exact line |
+| `return sum(scores) / len(scores)` | **The code** that failed |
+| lines above | **How you got there** — the call chain |
+
+The bottom line is the error. The frame just above it is where it happened. The frames above that are the path that led there — useful when the failing line looks fine in isolation.
+
+<Callout variant="tip" title="The last line is the answer">
+
+When you're staring at a traceback and it looks like noise: read the **last** line first. It names the error type and usually explains the cause in plain words.
+
+`ZeroDivisionError: division by zero`. `FileNotFoundError: [Errno 2] No such file or directory: 'data.csv'`. These are not cryptic.
+
+Then find the line number in the frame directly above it.
+
+</Callout>
+
+<CheckYourself question="A traceback's last line says KeyError: 'score' and the frame above points at line 6. What are the two things you now know, and what's the likely cause?">
+
+**1. What:** a dictionary lookup used the key `"score"` and that key doesn't exist in the dictionary.
+
+**2. Where:** line 6 of the file named in that frame.
+
+Likely causes, in order of probability:
+
+- A typo or case mismatch — `"Score"` vs `"score"`
+- The data genuinely lacks that field for some rows (a CSV column that's sometimes empty, an API response missing a key)
+- You're indexing the wrong thing — e.g. `student["score"]` where `student` is a string rather than a dict
+
+The fix is either correct the key, or use `.get("score", 0)` if a missing value is expected and legitimate.
+
+</CheckYourself>
+
+## The exceptions you'll actually hit
+
+| Exception | Usually means |
+|---|---|
+| `SyntaxError` | Python couldn't parse the file — a missing colon, bracket, or quote |
+| `NameError` | You used a name that doesn't exist — usually a typo or a variable defined in another function |
+| `TypeError` | Wrong type — `"5" + 5`, or calling something that isn't a function |
+| `ValueError` | Right type, wrong value — `int("hello")` |
+| `KeyError` | Dictionary key doesn't exist |
+| `IndexError` | List position doesn't exist — usually off-by-one |
+| `AttributeError` | Object doesn't have that method — `None.upper()` |
+| `ModuleNotFoundError` | The package isn't installed in this environment |
+| `FileNotFoundError` | The path is wrong, or you're in the wrong folder |
+
+<Callout variant="warning" title="ModuleNotFoundError is an environment problem, not a code problem">
+
+If you see this, the code is usually fine. Either:
+
+1. The package isn't installed — `uv add requests`
+2. You're running with a different Python than the one that has the package
+
+Check the second one first if the package is definitely installed:
+
+```bash
+which python3
+```
+
+If that doesn't point into your project's `.venv`, you're running the wrong interpreter. See [Python Virtual Environments](/tutorials/virtual-environments/python-virtual-environments).
+
+</Callout>
+
+## Handling errors deliberately
+
+Sometimes failure is expected — a file that might not exist, input that might not be a number. That's what `try` is for.
+
+```python
+try:
+    age = int(input("Your age: "))
+except ValueError:
+    print("That's not a number")
+```
+
+Python tries the block. If a `ValueError` occurs, it jumps to the `except` instead of crashing.
+
+<Callout variant="danger" title="Never write a bare except">
+
+```python
+try:
+    do_something()
+except:              # catches EVERYTHING
+    pass             # and silently ignores it
+```
+
+This hides real bugs. Your code appears to work while quietly doing nothing — and when something genuinely breaks, there's no error message to tell you where.
+
+Always name the exception you expect:
+
+```python
+except ValueError:
+except (ValueError, TypeError):
+```
+
+If you can't name it, you don't know what you're handling, and you probably shouldn't be catching it.
+
+</Callout>
+
+You can access the error object and add cleanup:
+
+```python
+try:
+    with open("data.json", encoding="utf-8") as f:
+        data = json.load(f)
+except FileNotFoundError:
+    print("No data file yet — starting fresh")
+    data = {}
+except json.JSONDecodeError as e:
+    print(f"data.json is corrupted: {e}")
+    raise
+finally:
+    print("Finished")     # always runs, error or not
+```
+
+`as e` gives you the exception object. `raise` on its own re-raises it — useful when you want to log something and still crash, rather than swallow the error.
+
+## Raising your own
+
+```python
+def average(scores):
+    if not scores:
+        raise ValueError("Cannot average an empty list")
+    return sum(scores) / len(scores)
+```
+
+A specific error with a clear message beats a confusing one three functions later. When your function is handed something it can't handle, say so immediately.
+
+## Debugging tactics
+
+**Print the thing.** Not "print here" — print the actual value:
+
+```python
+print(f"students = {students}")
+print(f"len = {len(students)}")
+```
+
+**Print `repr()` when a comparison fails.** It shows hidden characters:
+
+```python
+>>> print(repr(line))
+'Ada\n'
+```
+
+**Check the type.** Half of all bugs are a value not being the shape you assumed:
+
+```python
+print(type(students))       # <class 'str'>  ← ah
+```
+
+**Read the traceback properly.** Last line first, then the frame above it. Most of the time this alone is enough.
+
+**Use `breakpoint()`** to pause and inspect:
+
+```python
+def process(students):
+    breakpoint()            # execution stops here
+    return [s["name"] for s in students]
+```
+
+You get an interactive prompt where you can inspect any variable by typing its name. Type `c` to continue, `q` to quit. It's the REPL, attached to a paused program — the fastest way to understand what's actually happening.
+
+<Callout variant="tip" title="Explain the problem out loud">
+
+Describe what the code *should* do, then what it *does*, then what you've checked. To a person, a rubber duck, or an empty room.
+
+The act of putting it into words makes you notice the assumption you never questioned. This works more often than it has any right to, and it's the reason "ask a colleague" so frequently ends with "oh, never mind, found it".
+
+</Callout>
+
+## A debugging checklist
+
+When something doesn't work:
+
+1. **Read the last line of the traceback.** What error type, and what does it say?
+2. **Find the line it names.** Is that line doing what you think?
+3. **Print the inputs to that line.** Are they the type and value you assumed?
+4. **Check the three environment questions** — right folder, right Python, dependency installed.
+5. **Search the exact error**, minus your usernames and paths.
+6. **Make it smaller.** Delete code until the bug disappears, then add it back. The last thing you removed is the problem.
+
+## Quick reference
+
+| I want to... | Code |
+|---|---|
+| Handle an expected error | `try: ... except ValueError:` |
+| Catch several | `except (ValueError, TypeError):` |
+| Get the error object | `except ValueError as e:` |
+| Always run cleanup | `finally:` |
+| Re-raise after logging | `raise` |
+| Throw your own | `raise ValueError("message")` |
+| Inspect a value | `print(repr(value))` |
+| Check a type | `print(type(value))` |
+| Pause and explore | `breakpoint()` |
+| Continue past a breakpoint | `c` |
+
+## Where to go next
+
+You now have the toolchain, version control, and enough Python to write scripts that do real work.
+
+The natural next step is **calling APIs** — getting data from somewhere other than a local file, which is where most genuinely useful projects start. That section is being written. In the meantime, [Your First Project](/tutorials/first-project) shows you how to contribute to this site, and the patterns in [Files and JSON](/tutorials/python/files-and-json) transfer directly to working with API responses.

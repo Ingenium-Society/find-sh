@@ -1,0 +1,179 @@
+---
+title: "pip and requirements.txt"
+category: "Dependencies"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# pip and requirements.txt
+
+`pip` is Python's standard package installer. It's been the default for years, it's everywhere, and you need to be able to read it — because every existing Python project uses it.
+
+It also has a real weakness that this page will show you, which is why the next page recommends `uv` instead.
+
+## The basics
+
+With a virtual environment active:
+
+```bash
+pip install requests
+pip install requests==2.32.1     # a specific version
+pip install "requests>=2.28"     # a range
+pip install --upgrade requests   # update to newest
+pip uninstall requests
+```
+
+Check what you have:
+
+```bash
+pip list                         # everything installed
+pip show requests                # details about one package
+```
+
+## requirements.txt
+
+The convention is a plain text file listing dependencies:
+
+```
+requests==2.32.1
+python-dotenv==1.0.1
+pandas>=2.2,<3
+```
+
+Install everything in it:
+
+```bash
+pip install -r requirements.txt
+```
+
+That's the command every Python README contains, and it's the command that reproduces a project's dependencies on a new machine.
+
+## Generating it: pip freeze
+
+The obvious way to create the file is:
+
+```bash
+pip freeze > requirements.txt
+```
+
+It works, and it's the single most common source of dependency problems in small Python projects.
+
+<Callout variant="danger" title="pip freeze lists everything installed, not what you use">
+
+If you experimented with a package and didn't uninstall it, it ends up in the file. Your `requirements.txt` slowly fills with things nobody can explain:
+
+```
+requests==2.32.1
+pandas==2.2.3
+numpy==2.1.0
+beautifulsoup4==4.12.3
+jupyter==1.0.0
+ipykernel==6.29.4
+...
+```
+
+`jupyter` is there because someone once opened a notebook. It's now a permanent dependency of your project, and every new member installs it.
+
+</Callout>
+
+`pip freeze` also flattens the tree. It lists `urllib3`, `certifi`, `idna` and `charset-normalizer` as if you chose them. You didn't — `requests` did. When you later upgrade `requests`, those pinned sub-dependencies can block it:
+
+```
+ERROR: Cannot install requests==2.33.0 because these package versions have conflicting dependencies.
+```
+
+You're now fighting pins you never wrote.
+
+## What to do instead
+
+**If you must use pip:** maintain `requirements.txt` by hand. List only your direct dependencies, with version ranges rather than exact pins:
+
+```
+requests>=2.32,<3
+python-dotenv>=1.0,<2
+```
+
+Then, when you need exact reproducibility, use a lockfile tool. `pip-tools` does this:
+
+```bash
+pip install pip-tools
+pip-compile requirements.in      # reads requirements.in, writes requirements.txt with exact pins
+pip-sync                         # install exactly what's in the lockfile
+```
+
+You get both files: `requirements.in` is what you asked for, `requirements.txt` is the resolved receipt.
+
+**Better:** skip all of this and use [`uv`](/tutorials/package-managers/uv), which does the same thing with no extra setup.
+
+## The two-file pattern
+
+<Callout variant="tip" title="The idea worth taking from this page">
+
+Two files, two jobs, and never mix them up:
+
+| File | Content | Written by |
+|---|---|---|
+| `requirements.in` (or `pyproject.toml`) | your direct dependencies, loose | you, by hand |
+| `requirements.txt` (or `uv.lock`) | the full tree, exact | the tool |
+
+**Never hand-edit the second file. Never let a tool overwrite the first.**
+
+Everything `uv` does — and everything `pip-tools` does — follows this pattern. Once it clicks, most dependency confusion disappears.
+
+</Callout>
+
+<CheckYourself question="Your requirements.txt has jupyter, ipykernel and beautifulsoup4 in it, but your project only imports requests. What happened, and how do you fix it?">
+
+Someone ran `pip freeze > requirements.txt`, which dumps **everything installed in the environment** — not what the project uses.
+
+Those extra packages were installed at some point (probably for experimentation) and never uninstalled, so `freeze` captured them.
+
+The fix: rewrite `requirements.txt` by hand with only your direct dependencies, using ranges rather than exact pins:
+
+```
+requests>=2.32,<3
+```
+
+Then, if you need exact reproducibility, use `pip-compile` or `uv` to generate a proper lockfile from that list — so the tool owns the resolved tree and you own the intent.
+
+</CheckYourself>
+
+## Common errors
+
+**`ERROR: Could not find a version that satisfies the requirement requests`**
+
+Usually a typo in the package name, or no internet. Check the name against [pypi.org](https://pypi.org) directly.
+
+**`ERROR: pip's dependency resolver does not currently take into account all the packages that are installed`**
+
+You've installed something that conflicts with what's already there. Usually caused by installing outside a virtual environment, where unrelated packages pile up. Create a clean environment and reinstall.
+
+**`command not found: pip`**
+
+Use `pip3`, or you're not in an activated environment. Check for `(.venv)` in your prompt. See [Python Virtual Environments](/tutorials/virtual-environments/python-virtual-environments).
+
+**`Permission denied`**
+
+<Callout variant="warning" title="Permission denied is not a sudo problem">
+
+You're installing globally. That's the signal to create a virtual environment, not to add `sudo`.
+
+`sudo pip install` writes root-owned files into your system Python. It "works" and then causes stranger problems later — sometimes breaking system tools that depend on that Python.
+
+</Callout>
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Install a package | `pip install name` |
+| Install a specific version | `pip install name==1.2.3` |
+| Install from a file | `pip install -r requirements.txt` |
+| Upgrade | `pip install --upgrade name` |
+| Remove | `pip uninstall name` |
+| List installed | `pip list` |
+| Details on one package | `pip show name` |
+| See outdated packages | `pip list --outdated` |
+| Freeze everything (avoid) | `pip freeze > requirements.txt` |
+| Compile a proper lockfile | `pip-compile requirements.in` |

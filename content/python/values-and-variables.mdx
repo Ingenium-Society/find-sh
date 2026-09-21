@@ -1,0 +1,253 @@
+---
+title: "Values and Variables"
+category: "Python"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# Values and Variables
+
+A **value** is a piece of data. A **variable** is a name you give it so you can refer to it later.
+
+```python
+age = 17
+name = "Ingenium"
+```
+
+`age` and `name` are variables. `17` and `"Ingenium"` are values.
+
+<Callout variant="note" title="No type declarations">
+
+Python figures out the type from the value. You never write `int age = 17`.
+
+That's convenient and it's also why type errors happen at runtime rather than before you run the code. Which is the subject of most of this page.
+
+</Callout>
+
+## The types you'll actually use
+
+```python
+count = 42              # int
+price = 19.99           # float
+name = "Ingenium"       # str
+is_active = True        # bool
+result = None           # NoneType — "no value"
+```
+
+Five types cover almost everything you'll write at this stage.
+
+Check what something is with `type()`:
+
+```python
+>>> type(42)
+<class 'int'>
+>>> type("42")
+<class 'str'>
+```
+
+Those two are different, and confusing them is the single most common beginner error.
+
+## Strings
+
+Quotes can be single or double. Pick one and be consistent:
+
+```python
+greeting = "hello"
+greeting = 'hello'      # identical
+```
+
+Use the other kind when the string contains one:
+
+```python
+sentence = "It's fine"       # double outside, single inside
+quoted = 'She said "hi"'     # single outside, double inside
+```
+
+**f-strings** are how you put values inside text:
+
+```python
+name = "Ingenium"
+count = 3
+
+print(f"{name} has {count} members")
+```
+
+```
+Ingenium has 3 members
+```
+
+The `f` before the quote is what enables it. Without it, `"{name}"` prints literally.
+
+Useful methods:
+
+```python
+text = "  Hello World  "
+
+text.strip()          # 'Hello World'  — removes surrounding whitespace
+text.lower()          # '  hello world  '
+text.upper()          # '  HELLO WORLD  '
+text.replace("o", "0")
+len(text)             # 15
+"World" in text       # True
+```
+
+These **return a new string**. They do not modify the original:
+
+```python
+text = "  hi  "
+text.strip()
+print(text)           # still '  hi  '
+```
+
+That surprises people. Strings in Python are **immutable** — you cannot change one, only create a new one. Assign the result back if you want to keep it:
+
+```python
+text = text.strip()
+```
+
+## Numbers
+
+```python
+total = 2 + 3           # 5
+half = 10 / 4           # 2.5   — division always gives a float
+whole = 10 // 4         # 2     — floor division, drops the remainder
+remainder = 10 % 4      # 2
+squared = 3 ** 2        # 9
+```
+
+The one to note is `/` — it **always** produces a float, even when the division is exact:
+
+```python
+>>> 10 / 2
+5.0
+```
+
+If you need an integer, use `//`. This matters when a function expects an index or a count.
+
+## The type error everyone hits
+
+```python
+>>> "5" + 5
+TypeError: can only concatenate str (not "int") to str
+```
+
+Python won't guess what you meant. `"5"` is text and `5` is a number, and `+` does different things for each: join for strings, add for numbers.
+
+This shows up constantly with input:
+
+```python
+age = input("Your age: ")     # input() ALWAYS returns a string
+next_year = age + 1           # TypeError
+```
+
+Convert explicitly:
+
+```python
+age = int(input("Your age: "))
+next_year = age + 1
+```
+
+The conversion functions:
+
+| Function | Converts to | Example |
+|---|---|---|
+| `int()` | integer | `int("42")` → `42` |
+| `float()` | decimal | `float("3.5")` → `3.5` |
+| `str()` | text | `str(42)` → `"42"` |
+| `bool()` | true/false | `bool(0)` → `False` |
+
+<CheckYourself question="A user types 25 into an input(). You store it in a variable and try to add 1. It fails. Why, and what's the fix?">
+
+`input()` **always returns a string**, no matter what the user types. So you have `"25"`, not `25`, and `"25" + 1` is a TypeError — Python won't guess whether you want string concatenation or arithmetic.
+
+Fix: convert on the way in.
+
+```python
+age = int(input("Your age: "))
+```
+
+Be aware this raises `ValueError` if the user types something non-numeric like "twenty". Handling that properly is [Errors and Debugging](/tutorials/python/errors-and-debugging).
+
+</CheckYourself>
+
+## `None` and truthiness
+
+`None` means "no value". It's what a function returns when it doesn't return anything, and a common way to represent "not found yet".
+
+```python
+result = None
+
+if result is None:
+    print("nothing yet")
+```
+
+Compare with `is None`, not `== None`. It's the idiomatic form and it's never wrong.
+
+**Truthiness** — everything has a true/false interpretation, even when it isn't a bool:
+
+| Value | Truthy? |
+|---|---|
+| `0`, `0.0` | False |
+| `""` (empty string) | False |
+| `[]`, `{}` (empty collection) | False |
+| `None` | False |
+| anything else | True |
+
+So this is a common and correct pattern:
+
+```python
+name = input("Name: ")
+
+if name:
+    print(f"Hello, {name}")
+else:
+    print("You didn't type anything")
+```
+
+`if name:` is shorthand for `if name != "":`. It works for any type, which is why you see it everywhere.
+
+## Naming
+
+```python
+student_count = 12          # good
+studentCount = 12           # works, but not Python style
+sc = 12                     # too short to mean anything
+2things = 12                # SyntaxError — can't start with a digit
+class = 12                  # SyntaxError — 'class' is reserved
+```
+
+Conventions worth following from day one:
+
+- **`snake_case`** for variables and functions — Python's convention, and every library follows it
+- **Descriptive** — `student_count` not `sc`
+- **Reserved words are off limits** — `class`, `def`, `for`, `if`, `return`, `import`, `None`, `True`, `False`, and others
+
+<Callout variant="tip" title="Names are for you, not for Python">
+
+Python does not care what you call a variable. Your future self does.
+
+The test: can someone read the name six months from now and know what's in it? `d` fails. `days_since_signup` passes.
+
+</Callout>
+
+## Quick reference
+
+| I want to... | Code |
+|---|---|
+| Check a type | `type(value)` |
+| Make text from values | `f"{a} and {b}"` |
+| Convert to integer | `int("42")` |
+| Convert to text | `str(42)` |
+| Remove whitespace | `text.strip()` |
+| Change case | `text.lower()` / `.upper()` |
+| Length of a string | `len(text)` |
+| Check for a substring | `"x" in text` |
+| Integer division | `10 // 3` → `3` |
+| Remainder | `10 % 3` → `1` |
+| Check for no value | `if x is None:` |
+| Check for empty | `if x:` |
+
+## Next
+
+**[Collections](/tutorials/python/collections)** — lists and dictionaries, which is where Python starts being genuinely useful.
