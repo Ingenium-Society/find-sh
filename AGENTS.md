@@ -137,6 +137,32 @@ Components must be dark-mode aware — the site follows `prefers-color-scheme`, 
 - Clicking a folder toggles expand/collapse; it does not navigate unless it has an `index.md`.
 - Mobile: sidebar should collapse into a drawer/toggle rather than permanently splitting the screen.
 
+## Content checks — run before committing content
+
+```bash
+npm run check:content
+```
+
+Three checks, catching three different failure classes:
+
+| Check | Catches |
+|---|---|
+| Frontmatter | Missing required fields, invalid `difficulty` |
+| Links | An internal `/tutorials/...` link pointing at a page that doesn't exist |
+| MDX compile | A `.mdx` file that doesn't parse |
+
+**The MDX check is the important one.** `getMarkdownContent` catches compile errors and returns `null`, which the route turns into a 404 — so a broken `.mdx` file produces **no build failure and no error in the page**, just a dead route. Frontmatter and link checks cannot see this. It only surfaces at runtime, which means it would surface in production.
+
+Common causes: an unescaped `"` inside a JSX attribute (`question="... "key": ..."`), a `%` after a stray quote, or a component whose closing tag was never written.
+
+Escaping inside MDX attributes:
+
+- Use `&quot;` for double quotes inside a `question="..."` value
+- Prefer `&gt;` and `&lt;` for angle brackets
+- Avoid backslashes — JSX attribute strings process escape sequences, so `C:\tools` becomes a tab character. Write `C:/tools` or restructure the sentence.
+
 ## Workflow
 
 Work through `TASKS.md` in order, top to bottom. Mark items done as you complete them. Stop and ask before making an architectural decision that isn't already specified above.
+
+Before committing any content change, run `npm run check:content`. It takes a few seconds and catches the silent 404 class of failure that nothing else will.

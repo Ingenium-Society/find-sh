@@ -1,0 +1,140 @@
+---
+title: "How LLMs Work"
+category: "AI"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 1
+---
+
+# How LLMs Work
+
+You do not need to understand transformers to build with them. But you do need four facts, because every one of them shows up as a bug in real software.
+
+## 1. A model predicts the next token
+
+An LLM is a function that takes a sequence of tokens and returns a probability distribution over what comes next. Then it picks one, appends it, and runs again.
+
+```
+"The capital of France is"  →  " Paris"  (94%)
+                               " the"    (3%)
+                               ...
+```
+
+Everything else — chat, code generation, translation, summarising — is that one operation, repeated. The chat interface is a wrapper that formats your conversation into a sequence and loops.
+
+**The consequence for you:** the model is producing *plausible* text, not *true* text. Those are usually the same thing. When they diverge, you get a confident, well-formatted, entirely wrong answer — and nothing in the output signals that anything went wrong.
+
+<Callout variant="warning" title="This is the single most important thing on this page">
+
+A model does not have a database it consults. It has a statistical model of how text goes together.
+
+So "I don't know" is not the default. Continuing plausibly is the default. A model asked for a citation will produce something that *looks exactly like* a citation — correct format, plausible author, real-sounding journal — whether or not it exists.
+
+That's called hallucination, and it isn't a bug that gets fixed. It's the mechanism working as designed.
+
+</Callout>
+
+## 2. Tokens are not words
+
+Models don't see characters or words. They see **tokens** — chunks that are usually a few characters.
+
+```
+"Hello, world!"     →   ["Hello", ",", " world", "!"]
+"unbelievable"      →   ["un", "believ", "able"]
+```
+
+Rough English rule of thumb: **1 token ≈ 4 characters ≈ ¾ of a word.** So 1,000 words is roughly 1,300 tokens.
+
+Three practical consequences:
+
+| Because tokens aren't words | What you'll see |
+|---|---|
+| Rare words split into more tokens | Odd names and jargon cost more and are handled worse |
+| Whitespace and punctuation count | Formatting-heavy prompts cost more than they look |
+| Counting letters is hard | "How many r's in strawberry?" fails — it never saw letters |
+
+That last one is worth internalising. A model that can write a working sorting algorithm may fail to count the letters in a word, because letter-level questions aren't what token prediction is good at.
+
+<CheckYourself question="A model writes a fluent paragraph about a 2019 study, complete with authors, journal and page numbers. It doesn't exist. Why did it do that, rather than saying it didn't know?">
+
+Because it's predicting plausible text, and a plausible-sounding citation is exactly what usually follows "according to a 2019 study in…".
+
+It has no mechanism for checking whether a specific paper exists. Saying "I don't know" would require it to represent its own uncertainty, which is not what the next-token objective trains it to do.
+
+**Practical rule:** treat every specific fact, number, citation and API name from a model as unverified until you check it. Fluent phrasing is not evidence.
+
+</CheckYourself>
+
+## 3. The context window is the whole world
+
+Everything the model can see is the tokens you send it. There's a maximum — the **context window** — and older content is not remembered beyond it.
+
+```
+[ system prompt ][ conversation history ][ your new message ]
+      └──────────── all of this is sent, every single time ────────┘
+```
+
+<Callout variant="note" title="The API is stateless">
+
+There is no session on the server. Nothing is remembered between requests.
+
+"Continuing a conversation" means you re-send the entire history every time. That's why long chats get slower and more expensive — you're paying for the whole transcript on every turn.
+
+This is also why providers offer prompt caching, which is covered in [Tokens and Costs](/tutorials/ai-engineering/tokens-and-costs).
+
+</Callout>
+
+Practical effects:
+
+- Long documents may not fit, or may be truncated without warning
+- Instructions given early in a long conversation can get "lost"
+- Cost grows with the square of conversation length, roughly, if you keep appending
+
+## 4. The same prompt gives different answers
+
+Models sample from that probability distribution, so output varies between runs. `temperature` controls how much: near 0 is more deterministic, higher is more varied.
+
+```
+temperature: 0     →  almost always the same answer
+temperature: 1     →  noticeably varied
+```
+
+**Two consequences you'll hit:**
+
+**You cannot unit-test a model like a function.** `assert response == "Paris"` will fail eventually. You test *properties* — that the output is valid JSON, that it contains a city name, that a judge model rates it acceptable. That's [Evals and Guardrails](/tutorials/ai-engineering/evals-and-guardrails).
+
+**Bugs are hard to reproduce.** "It worked yesterday" is normal. Log your inputs.
+
+## What about training and knowledge cutoffs?
+
+A model's knowledge comes from training data and stops at a **knowledge cutoff** — a date. Ask about anything after it and you get either a refusal or a confident fabrication.
+
+You'll see the cutoff listed in model documentation. It's worth checking when your task depends on recent information, and it's the main reason to give a model retrieved context rather than trusting its memory — see [Embeddings and RAG](/tutorials/ai-engineering/embeddings-and-rag).
+
+## The mental model to carry forward
+
+<Callout variant="tip" title="A very well-read colleague who never checks their work">
+
+That's the right intuition.
+
+Enormously capable, fast, articulate, and completely unbothered by being wrong. Brilliant for drafting, transforming, summarising, and generating options. Dangerous as an unchecked source of fact.
+
+Your job as the engineer is not to make it always right — you can't. It's to **design around the fact that it's sometimes wrong**: constrain its output, verify what matters, and make failures visible.
+
+</Callout>
+
+## Quick reference
+
+| Fact | Why it matters to you |
+|---|---|
+| Predicts the next token | Plausible ≠ true; hallucination is inherent |
+| Tokens, not words | Cost and limits are counted in tokens |
+| Context window | Everything must fit; long chats cost more |
+| Stateless API | You re-send history every request |
+| Sampling is random | Same input may give different output |
+| Knowledge cutoff | Recent facts need to be supplied |
+| No letter-level view | Character-counting tasks fail |
+
+## Next
+
+**[Calling LLM APIs](/tutorials/ai-engineering/calling-llm-apis)** — your first real request.

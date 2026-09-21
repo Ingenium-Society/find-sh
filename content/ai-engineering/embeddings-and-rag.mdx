@@ -1,0 +1,179 @@
+---
+title: "Embeddings and RAG"
+category: "AI"
+difficulty: "advanced"
+updatedAt: "2026-09-21"
+order: 7
+---
+
+# Embeddings and RAG
+
+A model only knows what it was trained on, plus whatever you put in the prompt. When you need it to answer questions about *your* documents, you have to supply the relevant parts.
+
+That's retrieval, and the pattern is called **RAG** — retrieval-augmented generation.
+
+## Embeddings: search by meaning
+
+An embedding is a list of numbers representing the meaning of a piece of text.
+
+```python
+response = client.embeddings.create(
+    model="text-embedding-3-small",
+    input="How do I reset my password?",
+)
+
+vector = response.data[0].embedding    # ~1,500 numbers
+```
+
+Texts with similar meanings produce similar vectors. So you can find related content without sharing a single keyword.
+
+```
+"How do I reset my password?"     ─┐
+"I forgot my login credentials"   ─┤  close together
+"Password recovery steps"         ─┘
+
+"The cafeteria opens at 8am"      ─── far away
+```
+
+<Callout variant="note" title="This is why embeddings beat keyword search">
+
+Keyword search fails on vocabulary mismatch. A user searching "login problems" never matches a document titled "Authentication troubleshooting" — no shared words.
+
+Embeddings match on meaning, so they do.
+
+The tradeoff: embeddings are fuzzy. They can't match an exact error code or a specific ID reliably. **Production systems usually combine both** — semantic search for recall, keyword search for precision.
+
+</Callout>
+
+## The RAG loop
+
+```
+Indexing (once)                        Querying (per question)
+─────────────────                      ────────────────────────
+your documents                         user's question
+      ↓                                      ↓
+split into chunks                      embed the question
+      ↓                                      ↓
+embed each chunk                       find nearest chunks
+      ↓                                      ↓
+store vectors                          put them in the prompt
+                                             ↓
+                                       model answers from them
+```
+
+In code, the query half:
+
+```python
+question = "How do I reset my password?"
+
+# 1. Find relevant chunks
+q_vector = embed(question)
+chunks = vector_store.search(q_vector, top_k=5)
+
+# 2. Put them in the prompt
+context = "\n\n---\n\n".join(chunks)
+
+response = client.responses.create(
+    model="gpt-6-astra",
+    instructions=(
+        "Answer using ONLY the context below. "
+        "If the answer is not in the context, say "
+        "'I don't have that information.'"
+    ),
+    input=f"Context:\n{context}\n\nQuestion: {question}",
+)
+```
+
+<Callout variant="danger" title="That instruction is not optional">
+
+Without "answer using ONLY the context" and an explicit way to say "I don't know", the model will answer from its training data when retrieval fails.
+
+You get a fluent, plausible, *unsourced* answer that looks exactly like a retrieved one. The user has no way to tell the difference — and neither do you, unless you check.
+
+This is the single most important line in a RAG system. See [Prompting](/tutorials/ai-engineering/prompting).
+
+</Callout>
+
+## Where RAG goes wrong
+
+Most RAG failures are retrieval failures, not model failures.
+
+| Symptom | Usual cause |
+|---|---|
+| Answers ignore the documents | Chunks too small, or nothing relevant was retrieved |
+| Answers are vague | Chunks too large — the relevant sentence is buried in noise |
+| Retrieval misses obvious matches | Chunking split the answer across a boundary |
+| Answers cite the wrong source | Overlapping chunks, or `top_k` too high |
+| It answers from training data | No "only use the context" instruction |
+| Works on 10 documents, fails on 10,000 | Retrieval quality, not volume — check the ranking |
+
+**Chunking is the hard part.** There's no universal right answer:
+
+- **Too small** → a chunk contains half a sentence and no meaning
+- **Too large** → the embedding averages several topics and matches everything weakly
+- **Split mid-answer** → retrieval finds the question but not the answer
+
+Start around a few hundred tokens with some overlap, and **split on structure** — headings, paragraphs — rather than a fixed character count. A chunk that respects a document's own boundaries is almost always better than one that cuts through them.
+
+## When not to use RAG
+
+<Callout variant="warning" title="RAG is not always the answer">
+
+Reach for RAG when you have **many documents and variable questions** — a knowledge base, a documentation site, a support archive.
+
+Don't reach for it when:
+
+| Situation | Better approach |
+|---|---|
+| One document, fits in the context window | Just put the whole thing in the prompt |
+| A few short documents, always needed | Put them all in the prompt |
+| Structured data (a database, a CSV) | Query it properly — SQL, `pandas` |
+| Exact lookups (order IDs, error codes) | Keyword or database search |
+| The task is a fixed extraction | Structured output, no retrieval |
+
+**If your entire corpus fits in the context window, you don't need RAG.** You need a longer prompt. RAG adds a vector store, an embedding pipeline, a chunking strategy and a whole new failure mode — all of which you can skip.
+
+</Callout>
+
+<CheckYourself question="You have 12 short FAQ pages, about 4,000 words total. A teammate proposes a vector database and an embedding pipeline. What would you say?">
+
+Probably: skip it.
+
+4,000 words is roughly 5,000 tokens — comfortably inside the context window of any current model. You can put the entire FAQ in the prompt every time, and the model sees everything rather than the 5 chunks a similarity search happened to return.
+
+What RAG would add: an embedding model, a vector store, a chunking strategy, an indexing pipeline to keep in sync, and a new class of bug where retrieval misses the right answer. For zero benefit, because there's nothing to filter.
+
+**RAG exists to solve a scale problem.** Below that scale it's pure overhead.
+
+The honest caveat: if the FAQ will grow to 500 pages, the pipeline might be worth building now. But build it when you need it, not in anticipation.
+
+</CheckYourself>
+
+## A realistic starting point
+
+If you genuinely need retrieval, the simplest thing that works:
+
+1. **Chunk** on headings and paragraphs, a few hundred tokens each, with modest overlap
+2. **Embed** every chunk and store the vectors — a file, SQLite with a vector extension, or a hosted store
+3. **Retrieve** the top 5 for each question
+4. **Prompt** with the chunks, the question, and a strict "only use this" instruction
+5. **Evaluate** on questions you know the answers to, before you trust it
+
+Step 5 is the one people skip, and it's the one that tells you whether any of the rest works. That's [Evals and Guardrails](/tutorials/ai-engineering/evals-and-guardrails).
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Search by meaning | Embed both sides, compare vectors |
+| Create an embedding | `client.embeddings.create(model=..., input=text)` |
+| Find relevant chunks | Nearest vectors, `top_k` around 5 |
+| Prevent invented answers | "Answer using ONLY the context" + an explicit fallback |
+| Handle a small corpus | Skip RAG — put it all in the prompt |
+| Handle structured data | Query it properly, don't embed it |
+| Improve bad retrieval | Fix chunking first, model second |
+| Know whether it works | Eval on questions with known answers |
+
+## Next
+
+**[Evals and Guardrails](/tutorials/ai-engineering/evals-and-guardrails)** — the last page, and the one that decides whether any of this is trustworthy.

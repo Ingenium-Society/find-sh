@@ -1,0 +1,47 @@
+---
+title: "Unix Shells"
+category: "Terminal"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 7
+---
+
+# Unix Shells
+
+macOS and Linux both descend from Unix, and they share a command set. If a command works on one, it almost always works on the other.
+
+This section covers what's specific to them. The six pages before this one teach the commands themselves and apply to both platforms — start there if you haven't.
+
+## macOS and Linux are not identical
+
+| | macOS | Linux |
+|---|---|---|
+| Default shell | zsh | bash (usually) |
+| Package manager | Homebrew | apt / dnf / pacman |
+| Startup file | `~/.zshrc` | `~/.bashrc` |
+| Home directory | `/Users/you` | `/home/you` |
+| Install location | `/opt/homebrew/bin` | `/usr/bin`, `/usr/local/bin` |
+
+Small differences, and mostly they don't matter. Where they do, the pages say so.
+
+## Why the split matters
+
+Windows needs its own section because it's a genuinely different lineage — different shell language, different path syntax, different filesystem conventions. macOS and Linux need a much smaller one, because they're variations on the same thing.
+
+That asymmetry is why there's a full Windows track and a short Unix one.
+
+## What's in this section
+
+- **[Shell Configuration](/tutorials/terminal-basics/unix/shell-configuration)** — `.zshrc`, `.bashrc`, aliases, and making settings permanent
+- **[File Permissions](/tutorials/terminal-basics/unix/file-permissions)** — `chmod`, the executable bit, and when `sudo` is the wrong answer
+- **[Installing CLI Tools](/tutorials/terminal-basics/unix/installing-cli-tools)** — Homebrew, apt, and where the binaries actually end up
+
+## A note on `sudo`
+
+You'll meet `sudo` in this section and it deserves a warning up front: it runs a command as the system administrator, with no confirmation and no undo.
+
+Most of the time a beginner reaches for `sudo`, the real problem is that they're installing in the wrong place. [File Permissions](/tutorials/terminal-basics/unix/file-permissions) covers when it's legitimate and when it's a symptom.
+
+## If you're on Windows
+
+Start with the [Windows section](/tutorials/terminal-basics/windows) instead. And consider [WSL](/tutorials/terminal-basics/windows/wsl) — it gives you a real Linux environment inside Windows, which means the Unix commands on this site work as written, without translation.

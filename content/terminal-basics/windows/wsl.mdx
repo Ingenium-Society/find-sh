@@ -1,0 +1,228 @@
+---
+title: "WSL"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 4
+---
+
+# WSL
+
+**Windows Subsystem for Linux** runs a real Linux environment inside Windows. Not a translation layer, not an emulator — an actual Linux kernel, in a lightweight virtual machine, integrated with your Windows filesystem.
+
+For following this site, it's the option that removes the most friction.
+
+## Why it's worth installing
+
+Every command on this site works **as written**:
+
+```bash
+source .venv/bin/activate       # works
+chmod +x deploy.sh              # works
+export PATH="$HOME/bin:$PATH"   # works
+sudo apt install jq             # works
+```
+
+Without WSL, each of those needs a Windows translation. With it, the macOS/Linux tab in every `CommandTabs` block is correct for you, and you stop mentally converting between two dialects.
+
+It also matters for tooling. Most open-source projects assume a Unix shell. Docker, Make, shell scripts, and CI configs are all written for it. WSL means your machine matches what the project expects.
+
+## Installing
+
+In PowerShell **as administrator**:
+
+```powershell
+wsl --install
+```
+
+That installs WSL and Ubuntu, and enables the required Windows features. **Reboot when prompted.** On first launch, Ubuntu asks for a username and password — these are *Linux* credentials, separate from your Windows account.
+
+Check it worked:
+
+```powershell
+wsl --list --verbose
+```
+
+```
+  NAME      STATE           VERSION
+* Ubuntu    Running         2
+```
+
+Then open it:
+
+```powershell
+wsl
+```
+
+You're now in a Linux shell. Your prompt changes to something like `you@DESKTOP:/mnt/c/Users/you$`.
+
+<Callout variant="note" title="Other distributions">
+
+```powershell
+wsl --list --online          # see what's available
+wsl --install -d Debian      # install a specific one
+```
+
+Ubuntu is the default and has the most documentation. It's the right starting choice.
+
+</Callout>
+
+## Where your files are
+
+This is the part that confuses people. WSL has **two filesystems**:
+
+| Path | What it is |
+|---|---|
+| `/home/you/` | Linux's own filesystem — fast, native |
+| `/mnt/c/` | Your Windows `C:\` drive — accessible, slow |
+
+```
+/mnt/c/Users/you/Documents   →   C:\Users\you\Documents
+```
+
+<Callout variant="danger" title="Keep your projects in the Linux filesystem">
+
+Working across `/mnt/c/` is dramatically slower — often 5–10× for file-heavy operations. A `npm install` that takes 20 seconds in `/home/you/projects` can take minutes in `/mnt/c/Users/you/projects`.
+
+**Put projects in `~/projects` inside WSL**, not in your Windows folders.
+
+Then, when you want to open them in a Windows editor, access them through the network path from Windows:
+
+```
+\\wsl$\Ubuntu\home\you\projects
+```
+
+VS Code handles this automatically — `code .` from inside WSL opens the Windows VS Code attached to your WSL files. Install the **WSL** extension and it just works.
+
+</Callout>
+
+## Running Windows programs from WSL
+
+Interop is built in. You can call Windows executables directly:
+
+```bash
+notepad.exe notes.txt          # opens in Windows Notepad
+explorer.exe .                 # opens the current folder in File Explorer
+code .                         # opens VS Code
+```
+
+The `.exe` suffix is required. Interop goes one way more usefully than the other — from Windows you can't run Linux commands outside WSL.
+
+## Package management
+
+Inside WSL you have a normal Linux system, so the [Unix section](/tutorials/terminal-basics/unix) applies directly:
+
+```bash
+sudo apt update
+sudo apt install jq
+```
+
+```bash
+# uv, the modern Python tool
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+That `curl | sh` pattern works because you're genuinely in Linux now.
+
+<Callout variant="warning" title="Don't install the same tool twice">
+
+A common mess: Node installed in Windows *and* in WSL, Python in both, Git in both. Then you can't tell which one ran, and configs don't match.
+
+**Pick one side for development work.** If you're following this site, do it in WSL. Keep Windows-side installs for Windows applications.
+
+You can check what you're running:
+
+```bash
+which node        # inside WSL → /usr/bin/node or ~/.nvm/...
+which python3     # inside WSL → /usr/bin/python3
+```
+
+If a path starts with `/mnt/c/`, you're accidentally running a Windows-installed tool from inside WSL. That works, but it's slow and it means your environment is split across two systems.
+
+</Callout>
+
+## Line endings
+
+Windows uses `\r\n` to end lines; Unix uses `\n`. Git stores one or the other, and mixing them produces the notorious warning:
+
+```
+warning: LF will be replaced by CRLF in file.txt
+```
+
+<Callout variant="tip" title="The setting that avoids the whole problem">
+
+```bash
+git config --global core.autocrlf input
+```
+
+Inside WSL, `input` means: convert `\r\n` to `\n` on commit, leave files alone on checkout. Files stay Unix-style in the repository, which is what most projects expect.
+
+The symptom to watch for is a shell script that fails with:
+
+```
+/bin/bash^M: bad interpreter: No such file or directory
+```
+
+That `^M` is a stray carriage return. The fix:
+
+```bash
+sed -i 's/\r$//' script.sh
+```
+
+</Callout>
+
+<CheckYourself question="Your project is in /mnt/c/Users/you/projects and `npm install` takes four minutes. A teammate on a native Linux machine does it in twenty seconds. Why, and what would you change?">
+
+Because `/mnt/c/` is your **Windows** drive, accessed through a translation layer.
+
+Every file operation crosses the WSL boundary — opening, reading, writing, and stat-ing files all pay a per-operation cost. `npm install` creates tens of thousands of small files, so the overhead multiplies into minutes.
+
+Inside WSL's own filesystem (`~/projects`), the same install is native Linux I/O and runs at normal speed.
+
+**The fix:** move the project.
+
+```bash
+mkdir -p ~/projects
+mv /mnt/c/Users/you/projects/my-app ~/projects/
+cd ~/projects/my-app
+```
+
+You lose nothing — you can still reach the files from Windows via `\\wsl$\Ubuntu\home\you\projects`, and VS Code opens them fine with `code .`.
+
+The general rule: **do development work in the Linux filesystem, use `/mnt/c/` only for occasional access to Windows files.**
+
+</CheckYourself>
+
+## When not to use WSL
+
+WSL isn't always the answer:
+
+| Situation | Better option |
+|---|---|
+| The project is Windows-only (`.exe`, .NET desktop) | Native PowerShell |
+| You need a Windows-specific path or drive | Native PowerShell |
+| You're editing a file in `C:\` from WSL | Fine, but slow for heavy work |
+| A GUI application | Native — WSL is for CLI work |
+
+For web development, Python, Node, Docker, and anything in this curriculum, WSL is the better default.
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Install | `wsl --install` as administrator, then reboot |
+| Open it | `wsl` |
+| List distributions | `wsl --list --verbose` |
+| Install another distro | `wsl --install -d Debian` |
+| Access Windows files | `/mnt/c/...` |
+| Reach WSL files from Windows | `\\wsl$\Ubuntu\home\you\` |
+| Run a Windows program | `notepad.exe`, `explorer.exe .` |
+| Open VS Code | `code .` from inside WSL |
+| Keep projects | `~/projects` — not `/mnt/c/` |
+| Avoid line-ending problems | `git config --global core.autocrlf input` |
+
+## Where to go next
+
+You now have the Windows side of the terminal. If you installed WSL, the [Unix section](/tutorials/terminal-basics/unix) applies to you directly.
+
+Either way, you're ready for [Virtual Environments](/tutorials/virtual-environments) — where the platform differences become a lot smaller, because the tools themselves handle them.

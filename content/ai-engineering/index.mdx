@@ -1,0 +1,59 @@
+---
+title: "AI Engineering"
+category: "AI"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 8
+---
+
+# AI Engineering
+
+This is the division's namesake, and the last section of the curriculum. Everything before it exists to make this one possible: you need a terminal, an environment, a package manager, version control, and enough Python to write a script.
+
+AI engineering is not machine learning research. You are not training models. You are **calling models that already exist, and building something reliable on top of them.**
+
+That distinction matters, because it changes what's hard. The hard part is not the maths — it's that the component at the centre of your program is probabilistic, and everything you learned about writing deterministic code is only partly true here.
+
+## What that means in practice
+
+| Normal code | AI-backed code |
+|---|---|
+| Same input → same output | Same input → *usually* similar output |
+| Wrong means broken | Wrong means "worse than before" |
+| You test that it works | You measure how often it works |
+| Errors are exceptions | Failure is a plausible answer that looks fine |
+
+That last row is the one that catches people. A function that returns nonsense does not throw. It returns a string, and your code carries on happily.
+
+## What's in this section
+
+- **[How LLMs Work](/tutorials/ai-engineering/how-llms-work)** — the minimum mental model, and why they're confidently wrong
+- **[Calling LLM APIs](/tutorials/ai-engineering/calling-llm-apis)** — your first request, across three providers
+- **[Prompting](/tutorials/ai-engineering/prompting)** — system instructions, specificity, and the failure modes
+- **[Structured Output](/tutorials/ai-engineering/structured-output)** — making the model return data you can actually use
+- **[Streaming](/tutorials/ai-engineering/streaming)** — why responses feel slow, and how to fix the feeling
+- **[Tokens and Costs](/tutorials/ai-engineering/tokens-and-costs)** — counting, pricing, and where money actually goes
+- **[Embeddings and RAG](/tutorials/ai-engineering/embeddings-and-rag)** — search by meaning, and when RAG is the wrong tool
+- **[Evals and Guardrails](/tutorials/ai-engineering/evals-and-guardrails)** — how you know it works, and how it gets attacked
+
+## Before you start
+
+- **Python** — [the Python section](/tutorials/python). You need functions, dicts, and enough JSON handling to parse a response.
+- **`uv`** — [uv](/tutorials/package-managers/uv). You'll be installing SDKs.
+- **API keys** — [Environment Variables and PATH](/tutorials/terminal-basics/environment-variables-and-path) covers where secrets belong. Never in a file you commit.
+
+<Callout variant="danger" title="An API key is a credit card">
+
+Most providers bill per request. A leaked key is not just a privacy problem — someone can spend your money with it, and providers generally do not refund it.
+
+Keys go in `.env`, `.env` goes in `.gitignore`, and you add it *before* you create the file. [Undoing Changes](/tutorials/version-control/undoing-changes) covers what to do if you've already pushed one.
+
+</Callout>
+
+## What this section deliberately skips
+
+No training, no fine-tuning, no transformer internals, no gradient descent.
+
+Those are worth learning eventually, and they are not what stops you from building something that works. You can build a genuinely useful tool without knowing how attention works — the same way you can build a website without knowing how TCP handles packet loss.
+
+If you want the internals later, that's a different curriculum. This one is about shipping.

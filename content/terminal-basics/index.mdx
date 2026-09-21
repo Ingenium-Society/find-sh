@@ -1,0 +1,54 @@
+---
+title: "Terminal Basics"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# Terminal Basics
+
+The terminal is a text interface for telling your computer to do things. You type a command, press Enter, and it either works or it tells you why it didn't.
+
+That's the whole idea. Everything else is vocabulary.
+
+## Why it matters for club work
+
+- **Every tool you'll use assumes it.** Git, Python, Node, Docker, deployment platforms — they all expect you to be comfortable typing commands. A GUI exists for some of them and not for the rest.
+- **It's the fastest way to repeat yourself.** A command you ran yesterday is one press of the up-arrow away. A series of clicks is not.
+- **Errors are readable.** When something breaks in a GUI you get a spinning icon. In a terminal you get a message with a file, a line number, and a reason.
+- **It's the same everywhere.** The commands below work on macOS, Linux, and mostly on Windows. Your knowledge of any specific GUI does not travel at all.
+
+## What's in this section
+
+The six pages below teach the commands themselves. They apply to every platform — where macOS, Linux and Windows differ, the page says so.
+
+- **[What is a Terminal?](/tutorials/terminal-basics/what-is-a-terminal)** — shell vs terminal, how to open it, reading the prompt
+- **[Navigating the Filesystem](/tutorials/terminal-basics/navigating-the-filesystem)** — `pwd`, `ls`, `cd`, absolute vs relative paths
+- **[Working with Files](/tutorials/terminal-basics/working-with-files)** — creating, copying, moving, and deleting things
+- **[Commands, Flags, and Help](/tutorials/terminal-basics/commands-flags-and-help)** — how to read a command you've never seen before
+- **[Pipes and Redirection](/tutorials/terminal-basics/pipes-and-redirection)** — chaining commands together
+- **[Environment Variables and PATH](/tutorials/terminal-basics/environment-variables-and-path)** — the reason you keep seeing `command not found`
+
+## Then pick your platform
+
+Once you've read the six pages above, these two sub-sections cover what's specific to your system.
+
+| | Covers | Read it if |
+|---|---|---|
+| **[Unix Shells](/tutorials/terminal-basics/unix)** | Shell config files, permissions and `sudo`, installing CLI tools | You're on macOS or Linux |
+| **[Windows](/tutorials/terminal-basics/windows)** | PowerShell, drive letters, `setx`, and WSL | You're on Windows |
+
+<Callout variant="tip" title="On Windows, consider WSL first">
+
+If you're on Windows and following this site, [WSL](/tutorials/terminal-basics/windows/wsl) is worth installing before anything else. It gives you a real Linux environment inside Windows, which means every Unix command on this site works as written — no translating between two dialects.
+
+The [Windows section](/tutorials/terminal-basics/windows) teaches native PowerShell too, and it's a good shell. WSL is just less friction if your goal is following the rest of this curriculum.
+
+</Callout>
+
+## How to use this section
+
+Type every command. Do not read this like an article.
+
+The terminal is a muscle-memory skill. Reading `cd ..` and thinking "yes, that goes up a folder" feels like learning, but it isn't — you'll freeze the first time you're in a real terminal with a real problem. Run each command, watch what changes, and deliberately break things in a scratch folder where breaking them is free.

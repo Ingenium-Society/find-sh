@@ -1,0 +1,199 @@
+---
+title: "Installing CLI Tools"
+category: "Terminal"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 3
+---
+
+# Installing CLI Tools
+
+Two different things get called "installing a package", and confusing them causes real problems.
+
+| | System package manager | Project package manager |
+|---|---|---|
+| Installs | Programs you run from the terminal | Libraries your code imports |
+| Examples | `git`, `jq`, `ripgrep`, `node` | `requests`, `express`, `pandas` |
+| Tool | Homebrew, apt, dnf | `uv`, `npm`, `pip` |
+| Scope | Your whole machine | One project |
+| Covered in | This page | [Package Managers](/tutorials/package-managers) |
+
+**The rule:** if you type the name as a command, it's a system tool. If you `import` it, it's a project dependency.
+
+## macOS: Homebrew
+
+Homebrew is the standard. It installs into its own directory and deliberately **does not use `sudo`**.
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+<Callout variant="note" title="Read the install script first if you want">
+
+This is the `curl | sh` pattern from [Shell Configuration](/tutorials/terminal-basics/unix/shell-configuration). Homebrew is about as well-established as it gets, but the two-step habit is always available:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o brew.sh
+less brew.sh
+bash brew.sh
+```
+
+</Callout>
+
+Then:
+
+```bash
+brew install jq             # install a tool
+brew install --cask raycast # install a GUI app
+brew list                   # what's installed
+brew upgrade                # update everything
+brew uninstall jq           # remove
+brew doctor                 # diagnose problems
+brew search json            # find something
+```
+
+Homebrew installs into `/opt/homebrew` on Apple Silicon and `/usr/local` on Intel Macs.
+
+<Callout variant="warning" title="If brew is not found after installing">
+
+The installer prints a note about adding Homebrew to your `PATH` — usually two `eval` lines to add to `~/.zprofile`. If you skipped that, `brew` won't resolve.
+
+Add it manually:
+
+```bash
+# Apple Silicon
+echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+eval "$(/opt/homebrew/bin/brew shellenv)"
+```
+
+This is the `command not found` problem from [Environment Variables and PATH](/tutorials/terminal-basics/environment-variables-and-path), in the wild.
+
+</Callout>
+
+## Linux
+
+The package manager depends on your distribution:
+
+| Distribution | Tool | Install |
+|---|---|---|
+| Ubuntu / Debian | apt | `sudo apt install jq` |
+| Fedora / RHEL | dnf | `sudo dnf install jq` |
+| Arch | pacman | `sudo pacman -S jq` |
+
+`apt` in practice:
+
+```bash
+sudo apt update                 # refresh the package list — do this first
+sudo apt install jq             # install
+sudo apt remove jq              # remove
+apt search json                 # find packages
+```
+
+<Callout variant="note" title="apt update is not apt upgrade">
+
+`apt update` refreshes the *list of available packages*. `apt upgrade` installs newer versions of what you already have.
+
+Running `apt install` on a stale list is the usual reason for "package not found" on a machine that clearly has it in the repos.
+
+</Callout>
+
+Linux distributions use `sudo` for this, and that's legitimate — you're modifying system directories. It's the same category as the "editing `/etc`" row in [File Permissions](/tutorials/terminal-basics/unix/file-permissions).
+
+## Where the binaries go
+
+After installing, the executable lands somewhere on your `PATH`:
+
+```bash
+which jq
+```
+
+```
+/opt/homebrew/bin/jq
+```
+
+If `which` returns nothing, the tool installed somewhere your shell doesn't look. That's a `PATH` problem, not an install problem — the file exists, your shell can't find it.
+
+```bash
+ls -l /opt/homebrew/bin/jq      # is it actually there?
+```
+
+## Tools that ship their own installer
+
+Language ecosystems often provide tools that don't belong in a system package manager, because they need to match a specific runtime version:
+
+```bash
+# Python tools — uv manages them
+uv tool install ruff
+uvx ruff check .            # or run without installing
+
+# Node tools
+npm install -g typescript
+
+# Rust
+cargo install ripgrep
+
+# Go
+go install github.com/junegunn/fzf@latest
+```
+
+<Callout variant="tip" title="Prefer uvx or npx for one-off tools">
+
+If you need a formatter once, don't install it globally:
+
+```bash
+uvx ruff check .        # Python
+npx prettier --write .  # Node
+```
+
+Both download the tool, run it, and discard it. Nothing accumulates on your machine, and you always get a current version.
+
+Install globally only for tools you use daily.
+
+</Callout>
+
+## Which method should you use?
+
+| You want | Use |
+|---|---|
+| A CLI tool you'll use often (`jq`, `ripgrep`, `gh`) | Homebrew / apt |
+| A GUI application | `brew install --cask` |
+| A Python library for your project | `uv add` — never globally |
+| A Node library for your project | `npm install` — never `-g` |
+| A Python CLI tool used occasionally | `uvx` |
+| A Node CLI tool used occasionally | `npx` |
+| A specific version of a language runtime | `uv python`, `nvm`, `fnm` |
+
+<CheckYourself question="A tutorial says `sudo pip install requests`. Your project is in a virtual environment. What's wrong with the command?">
+
+Two things, and both matter.
+
+**`pip install requests` in an active virtual environment installs into that environment.** That's correct and needs no elevation. Adding `sudo` overrides the environment and installs into the *system* Python instead — so your code, running in the venv, won't find it, and you'll get `ModuleNotFoundError` despite having "installed" it.
+
+**Even without the venv, `sudo pip` is wrong.** It writes root-owned files into system directories. Future installs fail with permission errors, and on some systems you can break tools that depend on that Python.
+
+If the tutorial also says you got a permission error first: that error is the signal you're installing in the wrong place, not an instruction to escalate.
+
+Correct version: activate the environment, then `pip install requests`. Or with `uv`, just `uv add requests`.
+
+</CheckYourself>
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| Install a tool (macOS) | `brew install name` |
+| Install a GUI app (macOS) | `brew install --cask name` |
+| Install a tool (Ubuntu) | `sudo apt install name` |
+| Refresh the package list | `sudo apt update` |
+| List installed (macOS) | `brew list` |
+| Update everything (macOS) | `brew upgrade` |
+| Find where a tool lives | `which name` |
+| Run a Python tool once | `uvx name` |
+| Run a Node tool once | `npx name` |
+| Install a project dependency | `uv add` / `npm install` — never `sudo` |
+
+## Where to go next
+
+That's the end of the Unix-specific material. The concepts from the main terminal pages apply unchanged, and the platform differences are mostly vocabulary.
+
+If you're on Windows, the [Windows section](/tutorials/terminal-basics/windows) covers the equivalent ground — and [WSL](/tutorials/terminal-basics/windows/wsl) is worth considering if you'd rather use these commands directly.

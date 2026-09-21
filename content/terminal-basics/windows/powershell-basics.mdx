@@ -1,0 +1,217 @@
+---
+title: "PowerShell Basics"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 1
+---
+
+# PowerShell Basics
+
+PowerShell is Windows' modern shell. If you've used a Unix shell, the biggest surprise is that **it doesn't pass text between commands — it passes objects.**
+
+That one difference explains almost everything else about it.
+
+## Cmdlets are named Verb-Noun
+
+Every built-in command is a **cmdlet** with a consistent two-part name:
+
+| Cmdlet | Does |
+|---|---|
+| `Get-ChildItem` | list what's in a folder |
+| `Set-Location` | change directory |
+| `Get-Content` | read a file |
+| `Select-String` | search text in files |
+| `Get-Command` | find a command |
+| `Get-Help` | read documentation |
+| `Remove-Item` | delete |
+| `New-Item` | create |
+
+Because the naming is consistent, you can often guess a cmdlet you've never seen. `Get-` almost always retrieves something, `Set-` changes it, `New-` creates it, `Remove-` deletes it.
+
+<Callout variant="tip" title="Aliases let Unix commands work — with caveats">
+
+`ls`, `cd`, `cat`, `rm`, `mkdir`, `pwd` all work in PowerShell. They're aliases:
+
+| Alias | Real cmdlet |
+|---|---|
+| `ls`, `dir`, `gci` | `Get-ChildItem` |
+| `cd`, `chdir` | `Set-Location` |
+| `cat`, `type` | `Get-Content` |
+| `rm`, `del` | `Remove-Item` |
+| `pwd` | `Get-Location` |
+| `echo` | `Write-Output` |
+
+The names match Unix, but **the programs are different**. `ls -la` happens to work because PowerShell parses `-la` as parameters, not because it understands the Unix flags.
+
+When something behaves oddly, ask what you're actually running:
+
+```powershell
+Get-Command ls
+```
+
+</Callout>
+
+## Objects, not text
+
+This is the idea worth understanding.
+
+In a Unix shell, `ls` prints text. To find files over 1 MB you'd pipe to `awk` and parse columns.
+
+In PowerShell, `Get-ChildItem` returns **file objects** with properties like `Name`, `Length`, `LastWriteTime`. So you filter on the property directly:
+
+```powershell
+Get-ChildItem | Where-Object Length -gt 1MB
+```
+
+No parsing. No column counting. You're filtering objects, not text.
+
+| Unix approach | PowerShell approach |
+|---|---|
+| `ls -l \| awk '$5 > 1000000'` | `Get-ChildItem \| Where-Object Length -gt 1MB` |
+| `ps aux \| grep python` | `Get-Process \| Where-Object Name -eq python` |
+| `cut -d: -f1 /etc/passwd` | `Get-Content /etc/passwd \| ForEach-Object { $_.Split(':')[0] }` |
+
+The verb-noun pipeline reads more like a sentence: *get the children, where the length is greater than 1MB.*
+
+### Seeing the properties
+
+Because output is objects, you can ask what they contain:
+
+```powershell
+Get-ChildItem | Get-Member
+```
+
+That lists every property and method available. It's the PowerShell equivalent of "what can I do with this?" and it's how you discover the right thing to filter on.
+
+```powershell
+Get-ChildItem | Select-Object Name, Length, LastWriteTime
+```
+
+`Select-Object` picks which properties to show — the equivalent of choosing columns.
+
+<CheckYourself question="You want to find all .log files in a folder modified in the last day. In a Unix shell you'd pipe `ls -l` through `grep` and `awk`. How would you approach it in PowerShell, and why is it easier?">
+
+```powershell
+Get-ChildItem -Filter *.log | Where-Object LastWriteTime -gt (Get-Date).AddDays(-1)
+```
+
+Easier because you're filtering **objects with named properties**, not parsing text.
+
+`Get-ChildItem` hands you file objects that already have `Name`, `Length`, `LastWriteTime` as real properties. `Where-Object LastWriteTime -gt ...` compares a date to a date.
+
+In Unix you'd get a formatted line of text, then use `awk` to pull out column 6-8 as a date string, then compare strings. The parsing is fragile — a filename with a space shifts every column.
+
+The lesson: **in PowerShell, find the property name with `Get-Member`, then filter on it.** Don't parse output.
+
+</CheckYourself>
+
+## Getting help
+
+PowerShell's built-in help is genuinely good:
+
+```powershell
+Get-Help Get-ChildItem                 # full documentation
+Get-Help Get-ChildItem -Examples       # just examples
+Get-Help Get-ChildItem -Parameter Path # one parameter
+```
+
+<Callout variant="note" title="Update help once">
+
+If `Get-Help` shows only a summary, the full documentation isn't downloaded:
+
+```powershell
+Update-Help
+```
+
+Run it once as administrator. It's a one-time thing and makes every future `Get-Help` useful.
+
+</Callout>
+
+## Scripts won't run: execution policy
+
+You write a `.ps1` script, try to run it, and get:
+
+```
+.\deploy.ps1 : File C:\...\deploy.ps1 cannot be loaded because running
+scripts is disabled on this system.
+```
+
+That's the **execution policy** — a Windows security setting, not a PowerShell bug.
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+```
+
+<Callout variant="warning" title="Use -Scope CurrentUser">
+
+Without it, you need administrator rights and you change the setting for every user on the machine.
+
+`-Scope CurrentUser` changes it for you only, which is all you need and is easy to undo.
+
+`RemoteSigned` means: local scripts run freely, downloaded ones must be signed. That's the standard developer setting — safer than `Unrestricted`, less friction than `AllSigned`.
+
+To check the current setting:
+
+```powershell
+Get-ExecutionPolicy -List
+```
+
+</Callout>
+
+You'll also see this when activating a Python virtual environment:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+Same cause, same fix. See [Python Virtual Environments](/tutorials/virtual-environments/python-virtual-environments).
+
+## PowerShell 7 vs Windows PowerShell
+
+Two versions, and they're different programs:
+
+| | Windows PowerShell 5.1 | PowerShell 7+ |
+|---|---|---|
+| Command | `powershell.exe` | `pwsh.exe` |
+| Ships with Windows | Yes | No — install separately |
+| Runs on macOS/Linux | No | Yes |
+| `&&` chaining | No | Yes |
+| Actively developed | Maintenance only | Yes |
+
+<Callout variant="tip" title="Install PowerShell 7">
+
+```powershell
+winget install Microsoft.PowerShell
+```
+
+You get `&&` chaining, better error messages, and a shell that behaves the same on every platform. Windows PowerShell 5.1 stays installed for compatibility with system scripts — you just stop using it.
+
+To check which you're in:
+
+```powershell
+$PSVersionTable.PSVersion
+```
+
+</Callout>
+
+## Quick reference
+
+| I want to... | Cmdlet |
+|---|---|
+| List a folder | `Get-ChildItem` |
+| Show hidden files | `Get-ChildItem -Force` |
+| Change directory | `Set-Location` |
+| Read a file | `Get-Content` |
+| Search text | `Select-String` |
+| Find a command | `Get-Command` |
+| Read documentation | `Get-Help name` |
+| See an object's properties | `Get-ChildItem \| Get-Member` |
+| Pick columns | `Select-Object Name, Length` |
+| Filter | `Where-Object Length -gt 1MB` |
+| Check the version | `$PSVersionTable.PSVersion` |
+| Allow local scripts | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+
+## Next
+
+**[Paths and Drives](/tutorials/terminal-basics/windows/paths-and-drives)** — backslashes, drive letters, and where things live.

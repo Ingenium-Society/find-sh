@@ -1,0 +1,174 @@
+---
+title: "Tokens and Costs"
+category: "AI"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 6
+---
+
+# Tokens and Costs
+
+LLM APIs bill per token. Input and output are priced separately, and **output usually costs several times more than input.**
+
+That single fact explains most of the surprising bills.
+
+<Callout variant="warning" title="Prices change. Check the current page.">
+
+The rates below are examples for the arithmetic, not a price list. Providers change pricing and retire models regularly.
+
+Always check your provider's pricing page before budgeting anything. What matters on this page is the *method*, not the numbers.
+
+</Callout>
+
+## The arithmetic
+
+Two rates per model, per million tokens:
+
+| Example model | Input / MTok | Output / MTok |
+|---|---|---|
+| A large reasoning model | $10.00 | $50.00 |
+| A mid-tier model | $2.00 | $12.00 |
+| A small fast model | $0.20 | $1.20 |
+
+Cost is:
+
+```
+cost = (input_tokens  / 1_000_000 × input_rate)
+     + (output_tokens / 1_000_000 × output_rate)
+```
+
+### A worked example
+
+Classify 1,000 support messages. Each is about 300 input tokens, and each answer about 100 output tokens.
+
+```
+input:  1,000 × 300 = 300,000 tokens = 0.30 MTok
+output: 1,000 × 100 = 100,000 tokens = 0.10 MTok
+```
+
+| | Mid-tier ($2 / $12) | Large ($10 / $50) |
+|---|---|---|
+| Input | 0.30 × $2 = **$0.60** | 0.30 × $10 = **$3.00** |
+| Output | 0.10 × $12 = **$1.20** | 0.10 × $50 = **$5.00** |
+| **Total** | **$1.80** | **$8.00** |
+
+Same task, 4.4× the cost, purely from model choice.
+
+<Callout variant="tip" title="The single biggest cost lever is the model, not the prompt">
+
+People spend hours trimming words from a prompt to save a fraction of a cent, then run the job on a flagship reasoning model to classify support tickets.
+
+**Try the small model first.** Move up only when it demonstrably fails. For classification, extraction, and formatting, a cheap model is usually indistinguishable — and you can prove it with [evals](/tutorials/ai-engineering/evals-and-guardrails) rather than guessing.
+
+</Callout>
+
+## Reading the actual numbers
+
+Never estimate when you can measure. Every response reports its usage:
+
+```python
+response = client.responses.create(model="gpt-6-astra", input=prompt)
+
+print(response.usage.input_tokens)
+print(response.usage.output_tokens)
+```
+
+For a long-running job, accumulate:
+
+```python
+total_in = 0
+total_out = 0
+
+for row in rows:
+    response = client.responses.create(model="gpt-6-astra", input=row)
+    total_in += response.usage.input_tokens
+    total_out += response.usage.output_tokens
+
+print(f"{total_in:,} in / {total_out:,} out")
+```
+
+<Callout variant="note" title="Log usage from the first version, not later">
+
+Token counts vary enormously between inputs — a long email can be 20× a short one. Your estimate will be wrong, and you won't know which way.
+
+Record usage per call from the beginning. It costs three lines and turns "I think this is cheap" into a number you can act on.
+
+</Callout>
+
+## The cost that surprises people
+
+Because the API is stateless, **you re-send the whole conversation on every turn.** See [How LLMs Work](/tutorials/ai-engineering/how-llms-work).
+
+```
+Turn 1:  [system + Q1]                    → 500 input tokens
+Turn 2:  [system + Q1 + A1 + Q2]          → 1,200 input tokens
+Turn 3:  [system + Q1 + A1 + Q2 + A2 + Q3] → 2,100 input tokens
+```
+
+You're not paying for turn 3. You're paying for turns 1, 2 and 3 again.
+
+| Conversation length | Total input tokens billed |
+|---|---|
+| 5 turns | ~4,000 |
+| 20 turns | ~60,000 |
+| 50 turns | ~380,000 |
+
+Roughly quadratic. A long chat session can cost more than a hundred short ones.
+
+**Prompt caching** is the mitigation. Providers can cache the unchanged prefix of your request and charge a reduced rate for it — often around a tenth of the normal input price. The catch is that the cached prefix must be byte-identical, so anything variable needs to go at the *end*.
+
+<CheckYourself question="Your chatbot costs $0.02 per conversation for the first 5 turns and $0.40 for conversations that reach 40 turns. The per-message cost of the model hasn't changed. Why the 20× jump?">
+
+Because every turn re-sends the entire history.
+
+Turn 40 sends 39 previous turns plus the new message. So the input for that one call is roughly 40× the input for turn 1 — and you pay it again on turn 41.
+
+Total input across a conversation grows with the square of its length, not linearly.
+
+Three ways to reduce it:
+1. **Trim the history.** Keep a rolling window of the last N turns, plus a summary of what came before.
+2. **Enable prompt caching.** The unchanged prefix bills at a reduced rate. Put variable content at the end so the prefix stays stable.
+3. **Summarise instead of accumulating.** Once a conversation exceeds some length, replace the older turns with a short summary.
+
+</CheckYourself>
+
+## What actually saves money
+
+In order of impact:
+
+1. **Use a smaller model** where it passes your evals. Biggest lever by far.
+2. **Trim what you send.** Don't paste a 50-page document when the answer is in one section — retrieval exists for that ([Embeddings and RAG](/tutorials/ai-engineering/embeddings-and-rag)).
+3. **Cap output length.** `max_tokens` limits the worst case. Output is the expensive direction.
+4. **Enable prompt caching** for anything with a large, stable prefix.
+5. **Cache results yourself.** Identical input → store the answer. Classification of the same ticket twice is free the second time.
+6. **Batch where offered.** Providers sometimes offer a discount for non-urgent work.
+
+<Callout variant="danger" title="Set a spending limit before you run a loop">
+
+A bug that retries forever against a paid API is an expensive way to learn about backoff. A loop over 10,000 rows that you expected to be 200 is a real bill.
+
+Before any batch job:
+
+- Estimate the cost from a **sample of 10 rows**, then multiply
+- Set a hard spend limit in the provider's dashboard
+- Add a counter in your loop that stops after N calls
+- Check usage after the first batch, not after the last
+
+</Callout>
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Estimate cost | `(in/1e6 × in_rate) + (out/1e6 × out_rate)` |
+| Read actual usage | `response.usage.input_tokens` / `.output_tokens` |
+| Reduce cost most | Try a smaller model first |
+| Reduce input cost | Send less — trim context or retrieve |
+| Cap the worst case | Set `max_tokens` |
+| Speed up + cheapen repeats | Prompt caching, variable content last |
+| Avoid a surprise bill | Spend limit + a call counter in the loop |
+| Token estimate | ~4 characters, or ~¾ of a word, per token |
+
+## Next
+
+**[Embeddings and RAG](/tutorials/ai-engineering/embeddings-and-rag)** — giving a model knowledge it wasn't trained on.

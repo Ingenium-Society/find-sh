@@ -1,0 +1,269 @@
+---
+title: "Calling LLM APIs"
+category: "AI"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# Calling LLM APIs
+
+The first thing worth internalising: **this is just an API.**
+
+Same shape as [calling any other API](/tutorials/python/files-and-json). You send JSON to a URL with a key in the header, you get JSON back. There is no magic and no special client required.
+
+## Put the key somewhere safe first
+
+Never in your code. Never in a file you commit.
+
+```bash
+uv init my-ai-project
+cd my-ai-project
+```
+
+Create `.gitignore` **before** `.env`:
+
+```gitignore
+.env
+.venv/
+```
+
+Then create `.env`:
+
+```
+OPENAI_API_KEY=sk-...
+```
+
+<Callout variant="danger" title="Order matters here">
+
+Create `.gitignore` first. Once `.env` exists and gets committed, adding it to `.gitignore` afterwards does not remove it from history — and a pushed key is a spent key.
+
+If you've already pushed one, [Undoing Changes](/tutorials/version-control/undoing-changes) covers the recovery. The short version: revoke it immediately, then tidy up.
+
+</Callout>
+
+Load it in Python. `python-dotenv` is the simplest option:
+
+```bash
+uv add python-dotenv
+```
+
+```python
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+api_key = os.environ["OPENAI_API_KEY"]
+```
+
+<Callout variant="tip" title="Fail loudly on a missing key">
+
+`os.environ["OPENAI_API_KEY"]` raises `KeyError` if it's absent. `os.environ.get("OPENAI_API_KEY")` returns `None` and fails later with a confusing `401`.
+
+Use the square-bracket form. Crashing at startup with "KeyError: OPENAI_API_KEY" is a much better experience than an auth error three functions deep.
+
+</Callout>
+
+## The simplest possible call
+
+Raw HTTP, no SDK. Run this to see it's an ordinary API:
+
+```bash
+curl https://api.openai.com/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d '{
+    "model": "gpt-6-astra",
+    "input": "Explain what a token is in one sentence."
+  }'
+```
+
+The request has three things: a URL, a header carrying the key, and a JSON body with the model and your input.
+
+<Callout variant="warning" title="Model names change. Check before you copy.">
+
+Model identifiers are updated regularly and older ones get retired. Anything you read in a tutorial — including this one — can go stale.
+
+Look up the current list on your provider's models page rather than assuming a name still works. A retired model returns a `404`, which reads like a URL typo and wastes time.
+
+For production, providers recommend pinning to a specific dated snapshot rather than a floating alias, so behaviour doesn't shift under you.
+
+</Callout>
+
+## The same call in Python
+
+The official SDK is a thin wrapper that handles auth, retries and JSON for you.
+
+```bash
+uv add openai
+```
+
+```python
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+
+load_dotenv()
+
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+response = client.responses.create(
+    model="gpt-6-astra",
+    instructions="You are explaining things to a beginner. Be concise.",
+    input="Explain what a token is in one sentence.",
+)
+
+print(response.output_text)
+```
+
+```
+A token is a chunk of text — usually a few characters — that the model
+reads and predicts one piece at a time.
+```
+
+Note `instructions`. That's the system-level guidance, separate from the user's question. It's covered properly in [Prompting](/tutorials/ai-engineering/prompting).
+
+## What actually came back
+
+`output_text` is a convenience the SDKs provide. The raw response is more verbose:
+
+```json
+{
+  "id": "resp_...",
+  "model": "gpt-6-astra",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "A token is a chunk of text...",
+          "annotations": []
+        }
+      ]
+    }
+  ],
+  "usage": {
+    "input_tokens": 24,
+    "output_tokens": 31
+  }
+}
+```
+
+<Callout variant="danger" title="Don't assume output[0].content[0].text">
+
+The OpenAI docs are explicit about this: the `output` array **often has more than one item**. It can contain reasoning steps, tool calls, and other entries alongside the text.
+
+Indexing into it directly works in simple examples and then breaks the moment you use a reasoning model or a tool.
+
+Use the SDK's `output_text` property, which aggregates all text outputs for you, or iterate the array and filter for `type == "output_text"`.
+
+</Callout>
+
+That `usage` block is your bill. `input_tokens` and `output_tokens` are what you're charged for, and output is usually several times the price of input. [Tokens and Costs](/tutorials/ai-engineering/tokens-and-costs) does the arithmetic.
+
+## The other providers
+
+The concepts are identical; the names differ.
+
+| | OpenAI | Anthropic | Google |
+|---|---|---|---|
+| Endpoint | `POST /v1/responses` | `POST /v1/messages` | `POST /v1beta/models/{model}:generateContent` |
+| Auth header | `Authorization: Bearer` | `x-api-key` | `?key=` query param |
+| System prompt | `instructions` | `system` | `systemInstruction` |
+| Your input | `input` | `messages` | `contents` |
+| Text out | `output_text` | `content[0].text` | `candidates[0].content.parts[0].text` |
+| Token counts | `usage.input_tokens` | `usage.input_tokens` | `usageMetadata.promptTokenCount` |
+| Required extra | — | `anthropic-version: 2023-06-01` | — |
+
+Anthropic, for comparison:
+
+```python
+import anthropic
+
+client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+message = client.messages.create(
+    model="claude-sonnet-5",
+    max_tokens=1024,
+    system="You are explaining things to a beginner. Be concise.",
+    messages=[{"role": "user", "content": "Explain what a token is in one sentence."}],
+)
+
+print(message.content[0].text)
+```
+
+<Callout variant="note" title="Anthropic requires max_tokens">
+
+OpenAI infers a sensible default. Anthropic makes you state it, because it's a hard cap on the response length.
+
+Leaving it out is a `400`, not a silent default. Setting it too low truncates the answer mid-sentence — which is worth knowing, because a truncated response looks like a model failure when it's actually your setting.
+
+</Callout>
+
+<CheckYourself question="Your script worked yesterday and today returns a 404 with 'model not found'. Your code hasn't changed. What's the most likely cause?">
+
+The model was renamed or retired.
+
+Providers regularly deprecate model identifiers. An alias like `gpt-6-astra` may point at a snapshot that gets retired, at which point the name stops resolving — and a `404` for a model name looks exactly like a typo'd URL, which sends people hunting in the wrong place.
+
+Two fixes:
+- Check the provider's current model list and update the name
+- For anything you care about, pin to a dated snapshot so a rename can't break you mid-project
+
+This is why the "check before you copy" warning is on this page rather than in a footnote.
+
+</CheckYourself>
+
+## Handling failure
+
+Three errors you will actually hit:
+
+```python
+from openai import OpenAI, APIError, RateLimitError, AuthenticationError
+
+try:
+    response = client.responses.create(model="gpt-6-astra", input=prompt)
+except AuthenticationError:
+    print("Check your API key")
+except RateLimitError:
+    print("Too many requests — back off and retry")
+except APIError as e:
+    print(f"Provider error: {e}")
+```
+
+| Status | Means | Do |
+|---|---|---|
+| `401` | Bad or missing key | Check `.env` is loaded and the key is valid |
+| `429` | Rate limit or quota | Retry with exponential backoff |
+| `400` | Malformed request | Usually a missing required field, like `max_tokens` |
+| `404` | Wrong model or URL | Check the model name is current |
+| `500`/`503` | Provider problem | Retry; it's not you |
+
+<Callout variant="warning" title="Retry 429s, never retry 401s">
+
+A `429` means try again later. A `401` means your key is wrong — retrying it a hundred times just wastes time.
+
+And always cap your retries. A bug that causes an infinite retry loop against a paid API is an expensive way to learn about backoff.
+
+</Callout>
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Store the key | `.env`, git-ignored, created after `.gitignore` |
+| Load it | `load_dotenv()` then `os.environ["KEY"]` |
+| Raw HTTP call | `curl` with an auth header and JSON body |
+| Python SDK | `uv add openai` / `uv add anthropic` |
+| System prompt (OpenAI) | `instructions=` |
+| System prompt (Anthropic) | `system=`, plus required `max_tokens` |
+| Read the text | `response.output_text` (never index `output[0]`) |
+| Read the cost | `response.usage` |
+| Auth failure | `401` — fix the key, don't retry |
+| Rate limited | `429` — retry with backoff, capped |
+
+## Next
+
+**[Prompting](/tutorials/ai-engineering/prompting)** — getting useful answers out of the thing you just connected to.

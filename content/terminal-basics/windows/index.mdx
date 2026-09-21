@@ -1,0 +1,95 @@
+---
+title: "Windows"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 8
+---
+
+# Windows
+
+Windows gets its own section because it's a genuinely different lineage from macOS and Linux — different shell language, different path syntax, different conventions.
+
+The concepts from the main terminal pages still apply. What changes is the vocabulary, and a few things that work differently enough to trip you up.
+
+## Three ways to have a terminal on Windows
+
+| | What it is | When to use it |
+|---|---|---|
+| **PowerShell** | The modern native shell | Default choice. Built in, powerful, works with Windows properly |
+| **Command Prompt** (`cmd`) | The old native shell | Only when following an old tutorial or running a legacy script |
+| **WSL** | A real Linux environment inside Windows | When you want the Unix commands from this site to work as written |
+
+<Callout variant="tip" title="Which one should you actually pick?">
+
+**If you're following this site and want the least friction: install WSL.**
+
+It gives you Ubuntu inside Windows. Every Unix command on this site works unchanged, every `CommandTabs` block on the earlier pages becomes irrelevant because the macOS/Linux tab is now correct for you, and you stop translating between two dialects.
+
+**If you'd rather stay native: PowerShell.** It's a good shell, it's already installed, and it integrates with Windows in ways WSL can't. This section teaches it.
+
+**Avoid `cmd`** unless something forces you. It's maintained for compatibility, not for new work.
+
+</Callout>
+
+## What's the same
+
+Most of what you learned carries over:
+
+```powershell
+cd projects          # change directory
+ls                   # list  (aliases to Get-ChildItem)
+pwd                  # where am I
+mkdir notes          # make a folder
+rm file.txt          # delete  (alias)
+cat file.txt         # print   (alias)
+```
+
+`ls`, `cd`, `pwd`, `mkdir`, `rm`, `cat` all work in PowerShell. They're aliases for the real cmdlets.
+
+## What's different
+
+| | Unix | PowerShell |
+|---|---|---|
+| Path separator | `/` | `\` (and `/` works too) |
+| Home | `~` or `/Users/you` | `~` or `C:\Users\you` |
+| Env var | `$HOME` | `$env:HOME` |
+| Set env var (session) | `export X=y` | `$env:X = "y"` |
+| List files, detailed | `ls -la` | `ls -Force` |
+| Chain on success | `cmd1 && cmd2` | `cmd1; cmd2` (PS 5.1) or `&&` (PS 7+) |
+| Which command | `which name` | `Get-Command name` |
+| Search text | `grep pattern` | `Select-String pattern` |
+| Permissions | `chmod` | ACLs — `icacls`, not `chmod` |
+| Package manager | Homebrew / apt | `winget` |
+
+<Callout variant="warning" title="The aliases lie about what they do">
+
+`ls` in PowerShell is an alias for `Get-ChildItem`, and it accepts different arguments than the Unix `ls`.
+
+```powershell
+ls -la            # works — but -la is parsed as parameters, not the Unix flags
+ls -Force         # the actual PowerShell way to show hidden items
+```
+
+This is the single biggest source of confusion for people moving between platforms. The *name* matches; the *behaviour* is a different program.
+
+When something behaves unexpectedly, check what you're really running:
+
+```powershell
+Get-Command ls
+```
+
+</Callout>
+
+## What's in this section
+
+- **[PowerShell Basics](/tutorials/terminal-basics/windows/powershell-basics)** — cmdlets, verb-noun naming, and why output is objects not text
+- **[Paths and Drives](/tutorials/terminal-basics/windows/paths-and-drives)** — `C:\`, backslashes, and where things actually live
+- **[Environment Variables on Windows](/tutorials/terminal-basics/windows/environment-variables-in-windows)** — `$env:`, `setx`, and editing PATH without breaking it
+- **[WSL](/tutorials/terminal-basics/windows/wsl)** — a real Linux environment inside Windows
+
+## A note on Windows Terminal
+
+If you're still using the old console window, install **Windows Terminal** from the Microsoft Store. It's a modern tabbed terminal that runs PowerShell, `cmd`, and WSL side by side, and it's what the screenshots in modern tutorials assume.
+
+It doesn't change how the shell works — it's just a much better window to run it in.

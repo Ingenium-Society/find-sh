@@ -1,0 +1,242 @@
+---
+title: "Structured Output"
+category: "AI"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 4
+---
+
+# Structured Output
+
+The moment you want to *use* a model's answer in code, prose stops being convenient.
+
+```python
+# You asked: "Extract the event details as JSON"
+text = response.output_text
+```
+
+```
+Sure! Here's the event information:
+
+{
+  "name": "Science Fair",
+  "date": "Friday",
+  "participants": ["Alice", "Bob"]
+}
+
+Let me know if you need anything else!
+```
+
+That's a perfectly good answer and a terrible API response. It has conversational padding, it's wrapped in a sentence, and if you `json.loads()` it you get a `JSONDecodeError`.
+
+## The wrong fix
+
+The instinct is to extract the JSON with a regex or string slicing:
+
+```python
+start = text.index("{")
+end = text.rindex("}") + 1
+data = json.loads(text[start:end])
+```
+
+<Callout variant="danger" title="Don't parse model output with string surgery">
+
+This works in testing and fails in production.
+
+- The model adds a second JSON block for an example → your `rindex` grabs the wrong one
+- The answer contains a `{` inside a string → wrong slice
+- A trailing comma appears → `json.loads` fails
+- The model prefixes with "Here's the JSON:" one day and "Certainly!" the next
+
+Every one of these is a real failure mode, and each produces a different confusing error. You end up maintaining a parser for a format you never defined.
+
+</Callout>
+
+The correct fix is to **constrain the output at the API level**, so the model literally cannot return anything else.
+
+## Structured Outputs
+
+You supply a JSON Schema, and the provider guarantees the response conforms to it.
+
+```python
+response = client.responses.create(
+    model="gpt-6-astra",
+    input=[
+        {"role": "system", "content": "Extract the event information."},
+        {"role": "user", "content": "Alice and Bob are going to a science fair on Friday."},
+    ],
+    text={
+        "format": {
+            "type": "json_schema",
+            "name": "event",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "date": {"type": "string"},
+                    "participants": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                    },
+                },
+                "required": ["name", "date", "participants"],
+                "additionalProperties": False,
+            },
+        }
+    },
+)
+```
+
+Now `response.output_text` is guaranteed to be JSON matching that shape. No preamble, no trailing sentence, no parsing guesswork.
+
+Schema rules worth knowing:
+
+| Rule | Why |
+|---|---|
+| Root must be `"type": "object"` | Not an array or a bare string |
+| List every field in `"required"` | Optional fields are expressed as nullable types |
+| Set `"additionalProperties": false` | Stops the model inventing extra keys |
+| Not every JSON Schema feature is supported | Check the provider's docs if a schema is rejected |
+
+<Callout variant="note" title="First call with a new schema is slower">
+
+Providers cache the compiled schema. The first request using a given schema has added latency; subsequent ones don't.
+
+Not a problem in production, but it makes benchmarks of "time to first response" misleading if you only run it once.
+
+</Callout>
+
+## The much nicer way: define a type
+
+Writing raw JSON Schema by hand is tedious and easy to get subtly wrong. Every major SDK lets you define a native type instead.
+
+```bash
+uv add pydantic
+```
+
+```python
+from pydantic import BaseModel
+from openai import OpenAI
+
+client = OpenAI()
+
+
+class Event(BaseModel):
+    name: str
+    date: str
+    participants: list[str]
+
+
+response = client.responses.parse(
+    model="gpt-6-astra",
+    input=[
+        {"role": "system", "content": "Extract the event information."},
+        {"role": "user", "content": "Alice and Bob are going to a science fair on Friday."},
+    ],
+    text_format=Event,
+)
+
+event = response.output_parsed      # already an Event instance
+print(event.participants)           # ['Alice', 'Bob']
+```
+
+Note `parse` instead of `create`, and `output_parsed` instead of `output_text`.
+
+<Callout variant="tip" title="Use the typed version whenever you can">
+
+You get three things at once:
+
+- **The schema** is generated from the type, so it can't drift from what you expect
+- **The response is parsed** into a real object, with the right types — no `.get()` chains
+- **Your editor knows the shape**, so `event.participants` autocompletes
+
+This is the version worth defaulting to. Raw JSON Schema is for when you're calling the HTTP API directly or your language has no helper.
+
+</Callout>
+
+## Other providers
+
+| | How |
+|---|---|
+| **OpenAI** | `text.format` with `type: "json_schema"` and `strict: true`; SDK helpers via `responses.parse(text_format=Model)` |
+| **Anthropic** | `output.format` with `{ "type": "json_schema", "schema": {...} }` |
+| **Google** | `generationConfig.response_mime_type: "application/json"` plus `response_schema` |
+
+<Callout variant="warning" title="JSON mode is not the same thing">
+
+Most providers offer two options:
+
+| | Outputs valid JSON | Follows your schema |
+|---|---|---|
+| **Structured Outputs** | yes | **yes** |
+| **JSON mode** | yes | no |
+
+JSON mode guarantees the response *parses*. It says nothing about which keys are present. You'll get `{"result": "..."}` when you asked for `{"name": ..., "date": ...}` and have to handle it.
+
+Use Structured Outputs. JSON mode is a legacy fallback for models that don't support schemas.
+
+</Callout>
+
+## What it does and doesn't guarantee
+
+<Callout variant="danger" title="A valid schema is not a correct answer">
+
+Structured Output gives you **syntactic** guarantees. It does not give you **semantic** ones.
+
+The model can return:
+
+```json
+{
+  "name": "Science Fair",
+  "date": "Not specified",
+  "participants": ["Alice", "Bob", "Friday"]
+}
+```
+
+That's perfectly valid against the schema. `"Friday"` is a string, so it satisfies `participants: array of string`. It's also nonsense.
+
+The schema made the *shape* impossible to get wrong. Whether the *content* is right is a separate question, and it's answered by [Evals and Guardrails](/tutorials/ai-engineering/evals-and-guardrails).
+
+</Callout>
+
+Two more things to handle:
+
+**Refusals.** If the model declines for safety reasons, the response contains a `refusal` field that deliberately does *not* match your schema. That's a feature — it makes refusals programmatically detectable instead of silently breaking your parser.
+
+**Truncation.** If the response hits a token limit mid-JSON, you get invalid JSON even with a schema. Check for a `max_tokens`-style stop reason before parsing.
+
+```python
+if response.status == "incomplete":
+    raise RuntimeError(f"Response truncated: {response.incomplete_details}")
+
+event = response.output_parsed
+```
+
+<CheckYourself question="You use JSON mode and get back `{&quot;answer&quot;: &quot;Paris&quot;}` when you expected `{&quot;city&quot;: ..., &quot;confidence&quot;: ...}`. The JSON is valid. What went wrong, and what would you change?">
+
+Nothing went wrong — JSON mode only promises that the output *parses*. It places no constraint on which keys appear, so the model invented a reasonable shape and returned it.
+
+Switch to Structured Outputs: supply a schema (or a typed model) with `city` and `confidence` declared as required. Then the response is constrained to that shape and the model has no freedom to rename or omit fields.
+
+The general lesson: **if your code depends on the shape of a response, the shape needs to be enforced by the API, not requested in the prompt.**
+
+</CheckYourself>
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Guaranteed JSON shape | Structured Outputs with a schema |
+| Easier schema definition | A Pydantic model (Python) or Zod (TypeScript) |
+| Parsed, typed result | `responses.parse(...)` then `output_parsed` |
+| Just valid JSON, any shape | JSON mode — rarely what you want |
+| Root of the schema | Must be `"type": "object"` |
+| Forbid extra keys | `"additionalProperties": false` |
+| Detect a refusal | Check for the `refusal` field |
+| Detect truncation | Check the stop / incomplete reason before parsing |
+| Never | Regex the JSON out of prose |
+
+## Next
+
+**[Streaming](/tutorials/ai-engineering/streaming)** — why the first token takes seconds, and what to do about it.

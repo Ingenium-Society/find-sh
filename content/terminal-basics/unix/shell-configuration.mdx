@@ -1,0 +1,172 @@
+---
+title: "Shell Configuration"
+category: "Terminal"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 1
+---
+
+# Shell Configuration
+
+Every time you open a terminal, your shell reads a configuration file before it shows you a prompt. Anything you put in that file runs automatically — which is how settings persist across sessions.
+
+## Which file is yours
+
+```bash
+echo $SHELL
+```
+
+```
+/bin/zsh
+```
+
+| Shell | Interactive config | Login config |
+|---|---|---|
+| zsh (macOS default) | `~/.zshrc` | `~/.zprofile` |
+| bash (most Linux) | `~/.bashrc` | `~/.bash_profile` |
+
+<Callout variant="note" title="Why two files?">
+
+A **login shell** is one that starts your session — opening Terminal, SSH-ing into a server. An **interactive shell** is any shell you type into, including ones nested inside a login shell.
+
+bash reads `.bash_profile` for login shells and `.bashrc` for interactive ones. On macOS, Terminal opens a login shell, so people often put everything in `.bash_profile`.
+
+**Practical advice:** put everything in `.zshrc` (or `.bashrc`) and don't think about it. If something doesn't load, that distinction is the first thing to check.
+
+</Callout>
+
+## What goes in there
+
+```bash
+# ~/.zshrc
+
+# Add a folder to PATH — note the "$PATH:" prefix
+export PATH="$HOME/.local/bin:$PATH"
+
+# Set a default editor
+export EDITOR="nano"
+
+# A shorter way to type a long command
+alias gs="git status"
+alias ll="ls -la"
+alias ..="cd .."
+
+# Environment variables for your projects
+export CLUB_API_URL="https://api.example.com"
+```
+
+After editing, reload it:
+
+```bash
+source ~/.zshrc
+```
+
+`source` runs the file in your current session, so you don't have to open a new terminal. Without it, your changes apply only to *new* terminals — which is why people edit, test, see no change, and get confused.
+
+## Aliases
+
+An alias is a shorthand that the shell expands before running.
+
+```bash
+alias ll="ls -la"
+```
+
+Now `ll` runs `ls -la`. Useful for:
+
+```bash
+alias ..="cd .."
+alias gs="git status"
+alias gp="git push"
+alias ll="ls -la"
+alias reload="source ~/.zshrc"
+```
+
+<Callout variant="warning" title="Aliases are not available in scripts">
+
+Aliases only exist in interactive shells. A shell script that uses `ll` will fail with `command not found`, because the alias was never defined.
+
+If you want a shorthand usable in scripts, write a function or a script on your PATH instead:
+
+```bash
+# a function, defined in the same config file
+mkcd() {
+  mkdir -p "$1" && cd "$1"
+}
+```
+
+Functions *do* work in scripts when the file is sourced.
+
+</Callout>
+
+## Don't paste configuration you don't understand
+
+You'll find commands online like this, usually to install something:
+
+```bash
+curl -LsSf https://example.com/install.sh | sh
+```
+
+<Callout variant="danger" title="curl | sh runs code you have not read">
+
+That downloads a script and pipes it straight into your shell. Whatever it contains runs immediately, with your permissions — and you never saw it.
+
+Sometimes that's fine. Homebrew, `uv`, and `rustup` all distribute this way, and it's a legitimate pattern for developer tools.
+
+But it's also trivially abusable. Treat it the way you'd treat a stranger asking to run a program on your laptop.
+
+**The safer version is two steps:**
+
+```bash
+curl -LsSf https://example.com/install.sh -o install.sh
+less install.sh          # read it
+sh install.sh            # then run it
+```
+
+For tools you trust, the one-liner is fine. The habit worth building is *deciding* rather than defaulting.
+
+</Callout>
+
+## Things that commonly break
+
+**A broken `.zshrc` breaks every new terminal.** If you add a line with a syntax error, new shells fail to start or print errors on every open. The fix is to comment out your recent additions, or open the file from an editor rather than the terminal.
+
+**PATH entries grow silently.** Add the same line twice and you get duplicates. Harmless, but messy:
+
+```bash
+echo $PATH | tr ':' '\n' | sort | uniq -d
+```
+
+**Reloading doesn't fix everything.** `source` re-runs the file, so any command in it runs again. If it appends to a variable, you get it twice.
+
+<CheckYourself question="You add `export PATH='$HOME/.local/bin:$PATH'` to .zshrc, run source ~/.zshrc, and now `ls` doesn't work. What happened?">
+
+The quote type is the problem. In single quotes, `$HOME` and `$PATH` are **literal text** — the shell does not expand them.
+
+So `PATH` was set to the string `$HOME/.local/bin:$PATH`, which is not a list of real directories. The shell can no longer find `ls` anywhere.
+
+Two fixes:
+- Use double quotes: `export PATH="$HOME/.local/bin:$PATH"`
+- Or no quotes at all if there are no spaces: `export PATH=$HOME/.local/bin:$PATH`
+
+Recovery: `PATH` is only broken in that session. Open a **new** terminal and fix the file. This is why the single-quote mistake is survivable — it doesn't persist.
+
+The general rule: single quotes mean "take this literally", double quotes mean "expand variables first".
+
+</CheckYourself>
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Find your shell | `echo $SHELL` |
+| Edit the config | `nano ~/.zshrc` |
+| Apply changes now | `source ~/.zshrc` |
+| Add a PATH entry | `export PATH="$HOME/bin:$PATH"` |
+| Make a shorthand | `alias ll="ls -la"` |
+| Make a shorthand for scripts | Define a function instead |
+| Check for duplicate PATH entries | `echo $PATH \| tr ':' '\n' \| sort \| uniq -d` |
+| Recover from a broken config | Open a new terminal and fix the file |
+
+## Next
+
+**[File Permissions](/tutorials/terminal-basics/unix/file-permissions)** — the executable bit, and when `sudo` is the wrong answer.

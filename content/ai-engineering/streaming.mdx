@@ -1,0 +1,135 @@
+---
+title: "Streaming"
+category: "AI"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 5
+---
+
+# Streaming
+
+A model writes one token at a time, and each token depends on all the ones before it. So the total time for a response scales with its length — a 500-token answer takes roughly 500 generation steps.
+
+Without streaming, your program waits for all of them before showing anything. That's where the "why is it just sitting there" feeling comes from.
+
+## Two numbers that matter
+
+| Metric | What it is | Typical feel |
+|---|---|---|
+| **Time to first token** | Delay before any output | ~0.5–3s |
+| **Tokens per second** | Generation speed | ~30–100 tok/s |
+
+A 400-token answer at 60 tokens/sec is about 7 seconds. Most of that is generation, not network. Streaming doesn't make it faster — it makes the wait *visible* by showing output as it arrives.
+
+<Callout variant="tip" title="Perceived speed is not the same as speed">
+
+Streaming is a UX technique, not an optimisation.
+
+The total time is identical. But a blank screen for 7 seconds reads as "broken", while text appearing steadily reads as "working". For anything interactive, that difference is the whole experience.
+
+</Callout>
+
+## Turning it on
+
+```python
+stream = client.responses.create(
+    model="gpt-6-astra",
+    input="Explain what a virtual environment is.",
+    stream=True,
+)
+
+for event in stream:
+    if event.type == "response.output_text.delta":
+        print(event.delta, end="", flush=True)
+```
+
+`flush=True` matters. Without it, Python buffers output and you see nothing until the buffer fills — which defeats the purpose entirely.
+
+For Anthropic, it's the same idea with different event names:
+
+```python
+with client.messages.stream(
+    model="claude-sonnet-5",
+    max_tokens=1024,
+    messages=[{"role": "user", "content": "Explain what a virtual environment is."}],
+) as stream:
+    for text in stream.text_stream:
+        print(text, end="", flush=True)
+```
+
+## What's on the wire
+
+Streaming uses **Server-Sent Events** — a long-lived HTTP response that sends chunks as they're produced.
+
+```
+event: content_block_delta
+data: {"delta": {"type": "text_delta", "text": "A virtual"}}
+
+event: content_block_delta
+data: {"delta": {"type": "text_delta", "text": " environment"}}
+```
+
+Each chunk is a partial update, not a complete response. This matters because **you can't validate a partial response** — see the warning below.
+
+<Callout variant="danger" title="Streaming and structured output don't mix">
+
+If you need guaranteed JSON, don't stream it and parse incrementally. Half a JSON object isn't valid JSON, and a schema can't be checked against a fragment.
+
+You have two options:
+
+1. **Don't stream.** Wait for the complete response, then parse. Fine for background jobs.
+2. **Stream for display, parse at the end.** Show text as it arrives, buffer it, and only validate once the stream closes.
+
+The second is what chat interfaces with tool calls actually do.
+
+</Callout>
+
+## When it's worth it
+
+| Situation | Stream? |
+|---|---|
+| Chat interface a human is watching | Yes — always |
+| Generating a long document for display | Yes |
+| Background job writing to a file | No — nothing is waiting |
+| Structured output for code to consume | No — you need the whole thing |
+| Batch classification of 500 rows | No — stream per row adds overhead for no benefit |
+
+The test is simple: **is a human waiting and watching?** If yes, stream. If a machine is consuming it, don't.
+
+<CheckYourself question="You add streaming to a batch job that classifies 200 support messages and writes results to a CSV. It's now slower and the code is more complex. Why didn't it help?">
+
+Because nobody was waiting to see each result.
+
+Streaming improves *perceived* latency — the time before the first visible output. In a batch job there's no viewer; the only thing that matters is total time, and streaming adds per-chunk overhead without reducing it.
+
+It also complicates the code: you now handle partial output, need to reassemble fragments, and lose the ability to validate a complete response before using it.
+
+Streaming is for humans watching output appear. For machine-consumed results, wait for the full response.
+
+</CheckYourself>
+
+## Handling the stream properly
+
+Three things that bite in production:
+
+**Partial failures.** A stream can drop mid-response. You get half an answer with no error, because the connection closing looks like normal completion. Buffer what you receive and compare against the expected stop reason.
+
+**No retry mid-stream.** Unlike a normal request, you can't retry a partial stream and get the same content — sampling is random. Either accept the partial output or start over.
+
+**Cost is the same.** You're billed for the tokens generated regardless of how they're delivered. Streaming does not save money.
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Turn it on (OpenAI) | `stream=True`, iterate events |
+| Turn it on (Anthropic) | `client.messages.stream(...)` context manager |
+| Print as it arrives | `print(chunk, end="", flush=True)` |
+| Reduce time to first token | Not possible directly — but streaming hides it |
+| Stream structured output | Don't; buffer and parse at the end |
+| Detect a dropped stream | Compare against the expected stop reason |
+| Decide whether to stream | Is a human watching? |
+
+## Next
+
+**[Tokens and Costs](/tutorials/ai-engineering/tokens-and-costs)** — what you're actually paying for.

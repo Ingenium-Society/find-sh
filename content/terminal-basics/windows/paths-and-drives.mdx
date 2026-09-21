@@ -1,0 +1,204 @@
+---
+title: "Paths and Drives"
+category: "Terminal"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# Paths and Drives
+
+Windows paths look different from Unix ones, and a few of the differences cause real problems.
+
+## Drive letters
+
+Windows filesystems start with a drive letter, not a root `/`:
+
+```
+C:\Users\you\projects\my-app
+│  │
+│  └── path within the drive
+└───── the drive
+```
+
+`C:` is normally your system drive. `D:`, `E:` and so on are additional drives or partitions.
+
+In PowerShell:
+
+```powershell
+Set-Location C:\Users\you\projects
+Get-PSDrive                       # list all drives, including mapped network ones
+```
+
+## Forward slashes work too
+
+Unlike `cmd`, **PowerShell accepts forward slashes**:
+
+```powershell
+cd C:/Users/you/projects      # works
+cd C:\Users\you\projects      # also works
+```
+
+This is why Node, Python, and Git commands mostly behave the same on Windows as elsewhere — those tools normalise separators themselves.
+
+<Callout variant="warning" title="Backslash is an escape character in most languages">
+
+`\` means "escape the next character" in Python, JavaScript, JSON, and many others.
+
+```python
+path = "C:\Users\you\notes"     # \n is a newline! \U is an error
+path = "C:\\Users\\you\\notes"  # escaped — correct
+path = r"C:\Users\you\notes"    # raw string — cleaner
+path = "C:/Users/you/notes"     # forward slashes — simplest
+```
+
+That first line is a real bug: `\n` becomes a newline character, so the path silently becomes `C:\Users\you` followed by a line break and `otes`.
+
+**Best habit in code: use forward slashes.** Windows accepts them, and every language accepts them. Or use your language's path library — `pathlib` in Python, `path` in Node — which handles this for you.
+
+</Callout>
+
+## Where things live
+
+```
+C:\
+├── Users\
+│   └── you\                      ← your home folder
+│       ├── Documents\
+│       ├── Downloads\
+│       ├── Desktop\
+│       └── AppData\              ← hidden: app settings and caches
+├── Program Files\                ← 64-bit installed apps
+├── Program Files (x86)\          ← 32-bit installed apps
+└── Windows\                      ← the OS. Don't touch.
+```
+
+Your home folder is the Windows equivalent of `/Users/you` or `/home/you`:
+
+```powershell
+cd ~
+pwd
+```
+
+```
+C:\Users\you
+```
+
+**Put your projects in your home folder**, not on the Desktop and not in `C:\`. Something like `C:\Users\you\projects\` — it's yours, it's backed up by most backup tools, and it needs no administrator rights.
+
+<Callout variant="danger" title="Never put a project in Program Files">
+
+`Program Files` is protected. Tools that write to their own directory — package managers, build tools, anything creating cache files — will fail with permission errors, and Windows may silently redirect writes elsewhere.
+
+Same for `C:\Windows\` and the drive root `C:\`.
+
+Your home folder needs no elevation. Use it.
+
+</Callout>
+
+## AppData
+
+`C:\Users\you\AppData` is hidden and holds per-user application data:
+
+| Folder | Holds |
+|---|---|
+| `AppData\Local` | Caches, per-machine data |
+| `AppData\Roaming` | Settings that follow you between machines |
+| `AppData\Local\Temp` | Temporary files |
+
+This is where npm caches packages, where VS Code keeps its state, and where many tools put their config. You'll see it in error messages and documentation.
+
+To see it:
+
+```powershell
+Get-ChildItem -Force ~\AppData
+```
+
+## Paths with spaces
+
+The same problem as Unix, and the same fix:
+
+```powershell
+cd "C:\Program Files"
+cd 'My Projects'
+```
+
+<Callout variant="tip" title="Quote, don't escape">
+
+Unix uses `\ ` to escape a space. In PowerShell, backslash is the path separator, so that doesn't work — **quote instead**.
+
+```powershell
+cd "My Projects"      # correct
+cd My\ Projects       # does not work in PowerShell
+```
+
+If a path might contain spaces — and `Program Files` always does — quote it.
+
+</Callout>
+
+## Things that differ from Unix
+
+**Case doesn't matter.** `C:\Users\You` and `C:\users\you` are the same folder.
+
+That's convenient on Windows and a problem when you collaborate: a file named `README.md` on your machine is a *different file* from `readme.md` on a teammate's Mac. If you rename a file's capitalisation, Git may not notice — and their clone breaks.
+
+**Some filenames are reserved.** You cannot create a file called `CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`, or `LPT1`–`LPT9`, in any folder, with any extension. These are legacy device names. `nul.txt` is also forbidden.
+
+**Path length has a limit.** Traditionally 260 characters. Long `node_modules` trees used to hit this constantly:
+
+```
+The specified path is too long
+```
+
+Modern Windows and most tooling handle longer paths, but it still appears. Enabling it requires a registry change:
+
+```powershell
+# Run as administrator
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+  -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+```
+
+Keeping projects closer to the drive root — `C:\dev\` rather than `C:\Users\you\Documents\Projects\2026\...` — avoids it without a registry edit.
+
+<CheckYourself question="A teammate on Windows has a file `readme.md`. You rename it to `README.md` and commit. They pull and get no change. Why?">
+
+Because Windows filesystems are **case-insensitive**. To Windows, `readme.md` and `README.md` are the same file — so the rename doesn't register as a change locally, and Git may not record it either.
+
+Git itself is case-sensitive, so this is a mismatch between Git's model and the filesystem's.
+
+The rename may be recorded but the working file not actually renamed, leaving the repo in a confusing state where Git thinks the file is `README.md` and the disk says `readme.md`.
+
+**The fix** is to force Git to notice:
+
+```powershell
+git mv readme.md README.md
+```
+
+Or rename through two steps:
+
+```powershell
+git mv readme.md temp.md
+git mv temp.md README.md
+```
+
+**The wider lesson:** case sensitivity is a portability trap. A project that works on Windows can break on a Mac or a Linux CI runner for this reason alone. If you're unsure, check whether your repository already mixes conventions, and standardise.
+
+</CheckYourself>
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| See your home path | `cd ~` then `pwd` |
+| List drives | `Get-PSDrive` |
+| Use forward slashes | `cd C:/Users/you` — works |
+| Handle a space | `cd "My Projects"` |
+| See hidden items | `Get-ChildItem -Force` |
+| Find AppData | `Get-ChildItem -Force ~\AppData` |
+| Where to keep projects | `C:\Users\you\projects\` |
+| Never put projects in | `Program Files`, `C:\Windows`, `C:\` |
+| Avoid long paths | Keep projects near the drive root |
+
+## Next
+
+**[Environment Variables on Windows](/tutorials/terminal-basics/windows/environment-variables-in-windows)** — `$env:`, `setx`, and editing PATH safely.

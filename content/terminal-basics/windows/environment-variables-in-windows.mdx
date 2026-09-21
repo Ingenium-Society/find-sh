@@ -1,0 +1,203 @@
+---
+title: "Environment Variables on Windows"
+category: "Terminal"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 3
+---
+
+# Environment Variables on Windows
+
+Same concept as [the Unix page](/tutorials/terminal-basics/environment-variables-and-path), different syntax — and one genuinely dangerous command that deserves its own warning.
+
+## Reading and setting
+
+```powershell
+$env:USERNAME              # read one
+$env:Path                  # the search path
+Get-ChildItem Env:         # list everything
+```
+
+```powershell
+$env:EDITOR = "notepad"    # set, for this session only
+```
+
+| | Unix | PowerShell | cmd |
+|---|---|---|---|
+| Read | `$HOME` | `$env:HOME` | `%USERNAME%` |
+| Set (session) | `export X=y` | `$env:X = "y"` | `set X=y` |
+| Set (permanent) | edit `.zshrc` | `setx` or the GUI | `setx` |
+
+<Callout variant="note" title="PowerShell env vars are case-insensitive">
+
+`$env:Path` and `$env:PATH` are the same variable. Convention is `$env:Path`.
+
+That's different from ordinary PowerShell variables, which *are* case-sensitive.
+
+</Callout>
+
+## PATH on Windows
+
+`PATH` is where the shell looks for commands, exactly as on Unix. The difference is that it's split into two levels:
+
+| Scope | Applies to | Stored in |
+|---|---|---|
+| **User** | Just you | `HKCU\Environment` |
+| **System** | Every user on the machine | `HKLM\SYSTEM\...\Environment` |
+
+When you type a command, Windows searches User PATH and System PATH together.
+
+```powershell
+$env:Path -split ';'          # note: semicolons, not colons
+```
+
+Windows separates entries with `;` where Unix uses `:`. That alone breaks a lot of copy-pasted instructions.
+
+## Making it permanent
+
+`$env:X = "y"` lasts until you close the terminal. To persist:
+
+```powershell
+setx EDITOR "notepad"
+```
+
+<Callout variant="danger" title="setx silently truncates at 1024 characters">
+
+`setx` writes to the registry, and it **truncates values longer than 1024 characters — without warning.**
+
+Your `PATH` is frequently longer than that. So this:
+
+```powershell
+setx PATH "$env:Path;C:\tools\bin"
+```
+
+can permanently destroy your PATH, breaking `python`, `node`, `git`, and anything else you'd installed. There is no undo, and the terminal you ran it from keeps working — so you don't notice until you open a new one and nothing resolves.
+
+**Never use `setx` to modify PATH.**
+
+</Callout>
+
+Use one of these instead.
+
+### The safe way: the GUI
+
+1. Press <kbd>Win</kbd>, type **environment variables**
+2. Choose **Edit the system environment variables**
+3. Click **Environment Variables…**
+4. Select **Path** under *User variables*, click **Edit**
+5. **New** → paste the folder path → **OK**
+
+It's slower, and it's the recommended method. There's a list you can read, individual entries you can delete, and no character limit.
+
+### The scripted way
+
+```powershell
+# Append to the USER path, permanently, with no length limit
+$old = [Environment]::GetEnvironmentVariable("Path", "User")
+$new = "$old;C:\tools\bin"
+[Environment]::SetEnvironmentVariable("Path", $new, "User")
+```
+
+This uses the .NET API rather than `setx`, so no truncation. Scope `"User"` keeps it to your account.
+
+To read it back:
+
+```powershell
+[Environment]::GetEnvironmentVariable("Path", "User") -split ';'
+```
+
+<Callout variant="tip" title="A new terminal is required">
+
+Neither method affects the terminal you're in — environment changes apply to processes started *after* the change.
+
+After editing PATH, close and reopen your terminal. If you're in VS Code, restart it entirely; its integrated terminal inherits the environment it was launched with.
+
+This is the Windows equivalent of forgetting to `source ~/.zshrc`.
+
+</Callout>
+
+## The `command not found` equivalent
+
+On Windows the error is:
+
+```
+'python' is not recognized as an internal or external command,
+operable program or batch file.
+```
+
+Same meaning as `command not found`: the shell searched every folder in PATH and didn't find it.
+
+Diagnose in this order:
+
+```powershell
+Get-Command python            # does the shell know it at all?
+where.exe python              # where does it resolve? (where is a real program)
+Test-Path "C:\Python312\python.exe"    # does the file actually exist?
+```
+
+| Symptom | Cause |
+|---|---|
+| `Get-Command` finds nothing, file exists | The folder isn't on PATH |
+| File doesn't exist | Not installed |
+| Found, but the wrong version | Two installs; PATH order decides |
+| Worked in the old terminal, not the new one | PATH changed but the shell wasn't restarted |
+| Works in PowerShell, not in cmd | Different PATH resolution, or a `.ps1` vs `.exe` issue |
+
+## The Windows installer trap
+
+Many Windows installers include a checkbox like:
+
+```
+[ ] Add Python to PATH
+```
+
+<Callout variant="warning" title="Tick that box">
+
+It's unchecked by default in several installers, including Python's.
+
+Leave it unchecked and the install "succeeds" — but `python` isn't recognised, because the shell has no idea where it went. You then spend an hour debugging an install that worked fine.
+
+If you've already installed without it, either re-run the installer and choose **Modify**, or add the folder to PATH manually.
+
+The folder is usually something like `C:\Users\you\AppData\Local\Programs\Python\Python312\` — and it has to be the folder containing `python.exe`, not the one above it.
+
+</Callout>
+
+<CheckYourself question="A tutorial tells you to run `setx PATH` with %PATH% inside it, in cmd, to add a folder. Why should you not do this?">
+
+Because `setx` truncates at 1024 characters and your PATH is probably longer than that.
+
+If it is, the command silently writes a **truncated** PATH to the registry. Everything past character 1024 is gone — often including Python, Node, Git, and every other tool you'd installed.
+
+What makes it worse:
+
+- **No error.** `setx` reports success.
+- **No immediate symptom.** Your current terminal keeps its old environment, so everything works until you open a new one.
+- **No undo.** The old value isn't backed up anywhere.
+
+The `%PATH%` expansion also merges System and User PATH into one value written to User PATH — so you get system entries duplicated into your user scope, and they'll go stale.
+
+**Do this instead:** use the Environment Variables GUI, or `[Environment]::SetEnvironmentVariable("Path", $new, "User")` which has no length limit.
+
+If you already ran it: check `[Environment]::GetEnvironmentVariable("Path","User")` and rebuild the list from what you remember having installed. This is a genuinely annoying situation to recover from.
+
+</CheckYourself>
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Read a variable | `$env:NAME` |
+| List everything | `Get-ChildItem Env:` |
+| Set for this session | `$env:NAME = "value"` |
+| Set permanently | `setx NAME "value"` — for non-PATH values only |
+| View PATH entries | `$env:Path -split ';'` |
+| Edit PATH safely | The Environment Variables GUI |
+| Edit PATH by script | `[Environment]::SetEnvironmentVariable("Path", $new, "User")` |
+| Apply changes | Close and reopen the terminal |
+| Find a command | `Get-Command name` |
+| Never | `setx PATH ...` |
+
+## Next
+
+**[WSL](/tutorials/terminal-basics/windows/wsl)** — a real Linux environment inside Windows.

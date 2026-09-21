@@ -1,0 +1,212 @@
+---
+title: "Prompting"
+category: "AI"
+difficulty: "beginner"
+updatedAt: "2026-09-21"
+order: 3
+---
+
+# Prompting
+
+There's a lot of mysticism around this. Most of it is unnecessary.
+
+Prompting is not incantation. It's **writing a clear specification for a competent collaborator who cannot ask clarifying questions.** If your prompt is ambiguous, you get a confident answer to one of the possible interpretations, and you won't know which.
+
+## Two kinds of instruction
+
+| | What it is | Where it goes |
+|---|---|---|
+| **System / developer** | Who the model is, how it should behave | `instructions` (OpenAI), `system` (Anthropic) |
+| **User** | The actual task | `input` (OpenAI), `messages` (Anthropic) |
+
+```python
+response = client.responses.create(
+    model="gpt-6-astra",
+    instructions="You are a Python tutor for beginners. "
+                 "Explain in under 100 words. Never use jargon without defining it.",
+    input="What is a virtual environment?",
+)
+```
+
+<Callout variant="note" title="OpenAI has three roles now">
+
+`system` is the older name. OpenAI's Responses API uses `developer` for the same idea, and still accepts `system`. You'll see both in the wild.
+
+Anthropic uses `system` as a top-level parameter, separate from the messages array.
+
+The concept is identical everywhere: **instructions that apply to the whole interaction, distinct from the user's current question.**
+
+</Callout>
+
+Put things that should always be true in the system prompt. Put the current task in the user message.
+
+## What actually makes prompts work
+
+### Be specific about the output
+
+Vague:
+
+```
+Summarise this article.
+```
+
+Specific:
+
+```
+Summarise this article in exactly 3 bullet points.
+Each bullet must be under 20 words.
+Write for someone who has not read the article.
+```
+
+The second version has an audience, a length, and a format. The first has none of those, so whatever you get is technically a valid answer.
+
+### Show an example
+
+One worked example beats three sentences of description. This is called **few-shot** prompting, and it's the highest-leverage technique there is.
+
+```
+Classify each message as BUG, FEATURE, or QUESTION.
+
+Message: "The export button does nothing"
+Category: BUG
+
+Message: "Could you add dark mode?"
+Category: FEATURE
+
+Message: "How do I reset my password?"
+Category:
+```
+
+The model continues the pattern. You've shown it the format, the vocabulary, and the level of granularity — all things that are tedious to describe and trivial to demonstrate.
+
+### Give it permission to fail
+
+By default, a model will answer. If you want "I don't know" to be available, say so:
+
+```
+Answer using only the information in the context below.
+If the answer is not in the context, respond with exactly:
+"I don't have that information."
+Do not use outside knowledge.
+```
+
+This is the single most important line in any retrieval system. Without it, a model asked a question it can't answer from the provided text will answer from its training data instead — which defeats the point of providing the text.
+
+### Specify the format explicitly
+
+If you need JSON, say so — and better, constrain it properly. That's [Structured Output](/tutorials/ai-engineering/structured-output).
+
+## What doesn't work
+
+<Callout variant="warning" title="Be sceptical of prompt 'tricks'">
+
+You'll see claims that certain magic phrases dramatically improve results — "take a deep breath", "you are a world-class expert", elaborate role-play, threats, promises of tips.
+
+Some of these showed measurable effects on specific benchmarks at specific times. Most don't reproduce, and several were artefacts of how the test was set up.
+
+What reliably works is unglamorous:
+
+- Being specific about what you want
+- Showing a worked example
+- Giving a clear output format
+- Providing the relevant information
+- Allowing "I don't know"
+
+Start there. Reach for tricks only after you've measured a real problem.
+
+</Callout>
+
+**"Be more accurate" does nothing.** It's not an instruction the model can act on — there's no accuracy dial it can turn up. If output is wrong, the prompt is missing information or the task is beyond the model.
+
+**Adding more instructions isn't automatically better.** Long prompts with many competing rules get partially followed. If your prompt has grown to 40 lines of accumulated patches, rewrite it.
+
+## The failure modes
+
+| Symptom | Usual cause |
+|---|---|
+| Answer is technically correct but useless | You didn't specify audience, length or format |
+| Output format varies between runs | You described the format in prose instead of showing it |
+| It ignores an instruction | The prompt is long and that rule is buried; move it to the system prompt or shorten |
+| It invents facts | You didn't give it the information and didn't allow "I don't know" |
+| It answers a different question | The prompt was ambiguous; you saw one reading, it took another |
+| Inconsistent classification | No examples, or examples that disagree with each other |
+
+<CheckYourself question="You add 'Be more accurate and do not hallucinate' to your prompt. Nothing improves. Why?">
+
+Because it isn't an actionable instruction.
+
+The model has no way to represent "accuracy" as a separate setting. It's already doing what it does — predicting plausible text. Telling it to be more accurate doesn't give it access to facts it doesn't have, or a mechanism to check itself.
+
+What actually reduces fabrication:
+
+1. **Supply the information.** Put the source text in the prompt.
+2. **Give it an out.** "If the answer is not in the context, respond with 'I don't have that information.'"
+3. **Constrain the format.** Structured output with a schema makes invented structure impossible.
+4. **Verify afterwards.** Check claims that matter, in code.
+
+Instructions like "be accurate" feel like they should work. They're the prompting equivalent of telling someone to "try harder".
+
+</CheckYourself>
+
+## Treat prompts as code
+
+A prompt is not a message you fire off and forget. It's a specification that determines your program's behaviour, and it deserves the same treatment as any other source file.
+
+- **Keep it in the repository**, not inline in three places
+- **Version it** — when you change a prompt, that's a change worth reviewing
+- **Test it** — a set of inputs with expected properties. That's [Evals and Guardrails](/tutorials/ai-engineering/evals-and-guardrails)
+- **Don't edit it blind.** If you can't measure whether a change helped, you're guessing
+
+<Callout variant="tip" title="Store prompts in a file, not a string literal">
+
+```python
+from pathlib import Path
+
+SYSTEM_PROMPT = Path("prompts/classify.txt").read_text()
+```
+
+Now the prompt has a diff, a history, and a reviewer. When output quality changes, `git log prompts/` tells you why.
+
+Inline string literals in Python files are where prompts go to become unmaintainable.
+
+</Callout>
+
+## A prompt worth copying
+
+```
+You are classifying support messages for a student club's website.
+
+Classify each message into exactly one category:
+  BUG      - something is broken
+  FEATURE  - a request for new functionality
+  QUESTION - asking how to do something
+
+Rules:
+- If a message could be two categories, choose the first one that applies in the order above.
+- If you are unsure, choose QUESTION.
+- Respond with the category word only. No punctuation, no explanation.
+
+Examples:
+  "The page won't load on my phone"        -> BUG
+  "Can we get a dark theme?"               -> FEATURE
+  "Where do I find the meeting notes?"     -> QUESTION
+```
+
+Note what it has: a role, a closed set of outputs, tie-breaking rules, an explicit fallback, an output format, and three examples. That's a specification, not a request.
+
+## Quick reference
+
+| I want to... | Do |
+|---|---|
+| Persistent behaviour | System prompt (`instructions` / `system`) |
+| The current task | User message |
+| Consistent format | Show a worked example |
+| Fewer invented facts | Supply the source text |
+| Allow "I don't know" | Say so explicitly, with the exact wording |
+| Fewer categories of output | Use a closed set and list them |
+| Reliable behaviour over time | Version prompts in git and test them |
+| Improve accuracy | Add information, not adjectives |
+
+## Next
+
+**[Structured Output](/tutorials/ai-engineering/structured-output)** — getting JSON back instead of prose you have to parse.

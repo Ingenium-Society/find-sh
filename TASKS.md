@@ -60,8 +60,12 @@ Old content is recoverable from git history (`git show 1266b4e -- content/`).
 - [x] A language, sequenced after the toolchain — `content/python/` (order 7), 7 pages + index.
       Framed as "enough Python to write scripts that do things", not a language course.
       Deliberately skips OOP, decorators, generators, metaclasses.
-- [ ] AI engineering — calling LLM APIs, structured output, embeddings/RAG, evals. This is the
-      last major gap and the one the division's name points at.
+- [x] AI engineering — `content/ai-engineering/` (order 8), 8 pages + index. The division's
+      namesake. Covers the mental model, calling APIs, prompting, structured output, streaming,
+      tokens/costs, embeddings and RAG, evals and guardrails. API shapes verified against
+      official docs rather than written from memory.
+- [x] Platform tracks inside the terminal section — `content/terminal-basics/unix/` and
+      `content/terminal-basics/windows/`, 4 pages + index each. See section 14.
 - [ ] Calling APIs (Python + JS) — deleted with v1 content; `files-and-json` covers the
       response-handling patterns, so this is now about requests, auth and rate limits.
 - [ ] Decide whether `track` / `prereqs` frontmatter fields are needed to express the sequence
@@ -105,4 +109,26 @@ and `pnpm add` are both blocked by the sandbox's file broker (see the
 - [x] Regenerated the lockfile with `npm install --package-lock-only`, which only needs registry
       metadata and does not run npm's bin-linking step. Lockfile now has 624 packages with
       `next-mdx-remote@6.0.0` and its full MDX subtree pinned. `npm ci` will work on Vercel.
+
+## 14. Platform tracks in the terminal section
+The six concept pages apply to every platform. These two sub-sections cover what is genuinely
+system-specific, so a reader stops translating between dialects.
+
+- [x] `content/terminal-basics/unix/` (order 7) — shell configuration (`.zshrc`, aliases,
+      `curl | sh`), file permissions (`chmod`, the executable bit, when `sudo` is a symptom),
+      installing CLI tools (Homebrew, apt, `uvx`/`npx`)
+- [x] `content/terminal-basics/windows/` (order 8) — PowerShell (verb-noun cmdlets, objects not
+      text, execution policy), paths and drives, environment variables (`setx` truncation
+      trap), and WSL
+- [x] `content/terminal-basics/index.mdx` rewritten to route readers to the right track
+
+**Decision — concepts stay single-source.** The alternative was duplicating all six concept
+pages into both tracks. That would have meant two copies of every page drifting apart over
+time, for no benefit: the commands are genuinely shared. Only the genuinely platform-specific
+material got its own pages.
+
+**The asymmetry is deliberate.** Windows gets four substantial pages because it is a different
+lineage — different shell language, path syntax, and conventions. Unix gets three because
+macOS and Linux are variations on the same thing. Both tracks exist; they are not the same size
+because they are not solving the same size of problem.
 

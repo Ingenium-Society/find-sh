@@ -1,0 +1,197 @@
+---
+title: "File Permissions"
+category: "Terminal"
+difficulty: "intermediate"
+updatedAt: "2026-09-21"
+order: 2
+---
+
+# File Permissions
+
+Every file has an owner and a set of permissions saying who can read, write, or execute it. On macOS and Linux this is enforced by the operating system, and it's the source of most `Permission denied` errors.
+
+## Reading the output
+
+```bash
+ls -l script.sh
+```
+
+```
+-rwxr-xr-x  1 haidar  staff  1234 Sep 21 09:14 script.sh
+│└┬┘└┬┘└┬┘  │   │      │      │
+│ │  │  │   │   │      │      └── modified
+│ │  │  │   │   │      └───────── group
+│ │  │  │   │   └──────────────── owner
+│ │  │  │   └──────────────────── hard links
+│ │  │  └──────────────────────── others
+│ │  └─────────────────────────── group
+│ └────────────────────────────── owner
+└──────────────────────────────── type (- file, d folder, l symlink)
+```
+
+Three groups of three. Read, write, execute — for the owner, the group, and everyone else.
+
+| Symbol | Meaning | On a file | On a folder |
+|---|---|---|---|
+| `r` | read | view contents | list the folder |
+| `w` | write | modify contents | create/delete files inside |
+| `x` | execute | run it | enter it with `cd` |
+| `-` | absent | not permitted | not permitted |
+
+`-rwxr-xr-x` reads as: owner can read/write/execute, group can read/execute, everyone else can read/execute.
+
+## Changing permissions
+
+Two syntaxes. **Symbolic** is readable:
+
+```bash
+chmod +x script.sh          # add execute, for everyone
+chmod u+x script.sh         # add execute, for the owner only
+chmod -w notes.txt          # remove write
+chmod go-r notes.txt        # remove read from group and others
+```
+
+**Octal** is compact, and it's what you'll see in documentation:
+
+```bash
+chmod 755 script.sh
+chmod 644 notes.txt
+chmod 600 secrets.env
+```
+
+Each digit is a sum: **4 = read, 2 = write, 1 = execute**.
+
+| Octal | Symbolic | Typical use |
+|---|---|---|
+| `755` | `rwxr-xr-x` | Scripts, folders — everyone can read and run |
+| `644` | `rw-r--r--` | Ordinary files — everyone reads, only you write |
+| `600` | `rw-------` | Private files, like `.env` |
+| `700` | `rwx------` | Private scripts and folders |
+
+<Callout variant="tip" title="The one you'll actually use: chmod +x">
+
+You write a script, try to run it, and get:
+
+```
+zsh: permission denied: ./deploy.sh
+```
+
+That's the missing execute bit. Fix it:
+
+```bash
+chmod +x deploy.sh
+./deploy.sh
+```
+
+`./` is required because the current folder usually isn't on your `PATH` — so `deploy.sh` alone gives `command not found`. That's a separate error with a separate cause.
+
+</Callout>
+
+## Folders need execute to be entered
+
+This catches people out. A folder with `r` but not `x` lets you list its contents but not `cd` into it:
+
+```bash
+chmod 644 myfolder          # read/write, no execute
+cd myfolder
+```
+
+```
+cd: permission denied: myfolder
+```
+
+Folders almost always want `755` or `700`, never `644`.
+
+## sudo
+
+`sudo` runs a command as the system administrator, bypassing permission checks.
+
+```bash
+sudo rm /var/log/old.log
+```
+
+<Callout variant="danger" title="sudo has no undo and no confirmation">
+
+It doesn't ask "are you sure". It runs the command with full system privileges.
+
+`sudo rm -rf` on the wrong path deletes system files. There's no trash, no recovery, and reinstalling the OS is the fix.
+
+Before using `sudo` for anything destructive: run the command without it first, and read the permission error. It usually tells you exactly what's wrong.
+
+</Callout>
+
+### When `sudo` is a symptom, not a solution
+
+The most common beginner `sudo` moment:
+
+```bash
+pip install requests
+```
+
+```
+ERROR: Could not install packages due to an EnvironmentError: [Errno 13]
+Permission denied: '/usr/lib/python3/site-packages/requests'
+```
+
+The instinct is `sudo pip install requests`. **Don't.**
+
+That error is not telling you to escalate. It's telling you that you're installing into the *system* Python, which you should never do — you'll create root-owned files that break later installs and can break system tools.
+
+The correct fix is a virtual environment. See [Virtual Environments](/tutorials/virtual-environments).
+
+| Situation | Correct response |
+|---|---|
+| `pip install` needs sudo | Create a virtual environment |
+| `npm install -g` needs sudo | Fix your Node install, or use `npx` |
+| Editing a file in your home folder needs sudo | You own it — something else is wrong |
+| Editing a file in `/etc` or `/var` needs sudo | Legitimate — that's system config |
+| Installing a system package via Homebrew/apt | Legitimate, and those don't need sudo on macOS |
+
+<CheckYourself question="A teammate tells you to run `sudo chmod -R 777 .` to fix a permission error in a project folder. Why is that a bad idea?">
+
+Three separate problems.
+
+**`777` means everyone can read, write and execute everything.** On a shared machine, any user can now modify or delete your project files. On a server, that's a security hole.
+
+**`-R` applies it recursively** to every file and folder underneath — including `.git`, any `.env` with secrets, and any scripts. All of them world-writable.
+
+**`sudo` makes the files owned by root.** Now *you* can't edit them normally, and you'll need `sudo` for every future operation on that folder. You've made the problem worse and harder to undo.
+
+The real cause of a permission error in your own project folder is almost always that something was created by root earlier — usually from a `sudo` command run previously. The fix is to find that file and change its ownership:
+
+```bash
+ls -la                 # find files owned by root
+sudo chown -R you:staff .    # give them back to you
+```
+
+Then stop using `sudo` inside your own project.
+
+</CheckYourself>
+
+## Ownership
+
+```bash
+chown user file.txt                    # change owner
+chown user:group file.txt              # change owner and group
+chown -R user:staff myproject/         # recursively
+```
+
+Mostly you'll use this to fix files that `sudo` created by accident.
+
+## Quick reference
+
+| I want to... | Command |
+|---|---|
+| See permissions | `ls -l file` |
+| Make a script runnable | `chmod +x script.sh` |
+| Set standard file perms | `chmod 644 file` |
+| Set standard folder perms | `chmod 755 folder` |
+| Make something private | `chmod 600 secrets.env` |
+| Apply recursively | `chmod -R 755 folder` |
+| See who owns a file | `ls -l` (columns 3 and 4) |
+| Fix root-owned files | `sudo chown -R you:staff .` |
+| Check your username | `whoami` |
+
+## Next
+
+**[Installing CLI Tools](/tutorials/terminal-basics/unix/installing-cli-tools)** — Homebrew, apt, and where binaries end up.
