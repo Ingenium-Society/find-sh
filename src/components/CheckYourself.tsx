@@ -17,7 +17,10 @@ export default function CheckYourself({ question, children }: CheckYourselfProps
   return (
     <div className="not-prose my-6 overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800">
       <div className="flex items-start gap-3 bg-zinc-50 px-4 py-3 dark:bg-zinc-900">
-        <span className="mt-0.5 shrink-0 rounded bg-zinc-200 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+        <span
+          data-prompt-skip
+          className="mt-0.5 shrink-0 rounded bg-zinc-200 px-1.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+        >
           Check
         </span>
         <p className="text-sm font-medium leading-relaxed text-zinc-800 dark:text-zinc-200">

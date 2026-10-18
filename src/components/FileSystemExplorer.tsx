@@ -136,7 +136,7 @@ export default function FileSystemExplorer() {
   }, []);
 
   return (
-    <div className="not-prose my-6">
+    <div className="not-prose my-6" data-prompt-skip>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
         <span className="text-zinc-500 dark:text-zinc-400">You are here</span>
         <code className="rounded-md bg-blue-500/10 px-2 py-1 font-mono text-[13px] text-blue-700 dark:text-blue-300">

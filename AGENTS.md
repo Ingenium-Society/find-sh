@@ -56,6 +56,8 @@ Sections chain deliberately: terminal ends on `PATH` because that's what makes v
     TutorialsLayoutClient.tsx     # sidebar drawer state + shell
     ContentRenderer.tsx           # renders .md HTML output OR compiled .mdx — both pipelines
     CodeEnhancer.tsx              # client-side pass adding copy buttons to every code block
+    PageHeader.tsx                # shared title / badges / AI-prompt action for content pages
+    CopyPromptButton.tsx          # "Copy prompt for AI to explain this" — serialises the page
     Callout.tsx                   # MDX: note / tip / warning / danger boxes
     CommandTabs.tsx               # MDX: per-platform command switcher
     CheckYourself.tsx             # MDX: collapsible self-check question
@@ -64,6 +66,7 @@ Sections chain deliberately: terminal ends on `PATH` because that's what makes v
     content.ts                    # walks /content, builds nav tree, parses frontmatter,
                                   # renders .md to HTML and compiles .mdx
     mdx-components.ts             # registry of components available to .mdx files
+    ai-prompt.ts                  # rendered page → copyable "explain this to me" prompt
 
 /public
 ```
